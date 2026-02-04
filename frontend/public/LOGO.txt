@@ -1,0 +1,6 @@
+Para alterar o logo do sistema:
+1. Coloque sua imagem em esta pasta (public) com o nome: logo.png
+2. Tamanho recomendado: 40x40 px (header) / 64x64 px (telas de login e registro)
+3. Formatos suportados: PNG (recomendado) ou SVG (use o nome logo.svg e altere nos arquivos Layout.js, Login.js e Register.js a referência de /logo.png para /logo.svg)
+
+Se não houver logo.png (ou der erro ao carregar), o sistema exibe o ícone padrão.
