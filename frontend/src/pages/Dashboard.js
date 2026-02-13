@@ -135,7 +135,7 @@ const Dashboard = () => {
     const items = (req.items ?? [])
       .map(
         (i) =>
-          `<tr><td style="border:1px solid #ddd;padding:8px">${i.asset_code ?? '-'}</td><td style="border:1px solid #ddd;padding:8px">${i.asset_name ?? '-'}</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${i.quantity ?? 0}</td></tr>`
+          `<tr><td style="border:1px solid #ddd;padding:8px">${i.product_code ?? '-'}</td><td style="border:1px solid #ddd;padding:8px">${i.product_name ?? '-'}</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${i.quantity ?? 0}</td></tr>`
       )
       .join('');
     const html = `
@@ -703,8 +703,8 @@ const Dashboard = () => {
                         )}
                         <div className="min-w-0">
                           <p className="font-medium text-foreground truncate">
-                            {m.asset_name}
-                            {m.asset_code ? <span className="text-muted-foreground font-normal ml-1">({m.asset_code})</span> : ''}
+                            {m.product_name}
+                            {m.product_code ? <span className="text-muted-foreground font-normal ml-1">({m.product_code})</span> : ''}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {m.type_label} · Qtd: {m.quantity}
@@ -764,8 +764,8 @@ const Dashboard = () => {
                     <TableBody>
                       {sectorConsumptionItems.map((item) => (
                         <TableRow key={item.id}>
-                          <TableCell className="font-mono text-muted-foreground text-sm">{item.asset_code ?? '-'}</TableCell>
-                          <TableCell className="text-sm font-medium">{item.asset_name ?? '-'}</TableCell>
+                          <TableCell className="font-mono text-muted-foreground text-sm">{item.product_code ?? '-'}</TableCell>
+                          <TableCell className="text-sm font-medium">{item.product_name ?? '-'}</TableCell>
                           <TableCell className="text-right text-sm">{item.quantity ?? 0}</TableCell>
                           <TableCell className="text-right text-sm">R$ {Number(item.unit_value ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                           <TableCell className="text-right text-sm">R$ {Number(item.total_value ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
@@ -852,8 +852,8 @@ const Dashboard = () => {
                         ) : (
                           (selectedRequest.items ?? []).map((item) => (
                             <TableRow key={item.id}>
-                              <TableCell className="font-mono text-muted-foreground text-sm">{item.asset_code ?? '-'}</TableCell>
-                              <TableCell className="text-sm font-medium">{item.asset_name ?? '-'}</TableCell>
+                              <TableCell className="font-mono text-muted-foreground text-sm">{item.product_code ?? '-'}</TableCell>
+                              <TableCell className="text-sm font-medium">{item.product_name ?? '-'}</TableCell>
                               <TableCell className="text-right text-sm">{item.quantity ?? 0}</TableCell>
                             </TableRow>
                           ))

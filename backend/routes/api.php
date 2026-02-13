@@ -1,13 +1,14 @@
 <?php
 
 use App\Http\Controllers\Api\ActivityLogController;
-use App\Http\Controllers\Api\AssetController;
+use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\AssetMovementController;
+use App\Http\Controllers\Api\StockMovementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DepartmentController;
+use App\Http\Controllers\Api\FixedAssetController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\StockRequestController;
@@ -34,15 +35,19 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('departments', DepartmentController::class);
 
+    Route::apiResource('fixed-assets', FixedAssetController::class);
+    Route::post('/fixed-assets/import', [FixedAssetController::class, 'import']);
+
     Route::get('/catalog', [CatalogController::class, 'index']);
     Route::apiResource('stock-requests', StockRequestController::class)->only(['index', 'store', 'show', 'update']);
+    Route::post('/stock-requests/{stockRequest}/start-separation', [StockRequestController::class, 'startSeparation']);
     Route::post('/stock-requests/{stockRequest}/fulfill', [StockRequestController::class, 'fulfill']);
 
-    Route::apiResource('products', AssetController::class)->parameters(['products' => 'asset']);
-    Route::post('/products/{asset}/withdraw', [AssetController::class, 'withdraw'])->name('products.withdraw');
-    Route::post('/products/{asset}/entry', [AssetController::class, 'entry'])->name('products.entry');
+    Route::apiResource('products', ProductController::class)->parameters(['products' => 'product']);
+    Route::post('/products/{product}/withdraw', [ProductController::class, 'withdraw'])->name('products.withdraw');
+    Route::post('/products/{product}/entry', [ProductController::class, 'entry'])->name('products.entry');
 
-    Route::get('/movements', [AssetMovementController::class, 'index']);
+    Route::get('/movements', [StockMovementController::class, 'index']);
 
     Route::apiResource('users', UserController::class);
 

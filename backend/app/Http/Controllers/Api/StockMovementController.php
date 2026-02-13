@@ -3,20 +3,20 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\AssetMovement;
+use App\Models\StockMovement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class AssetMovementController extends Controller
+class StockMovementController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
         if (!$request->user()->can('read')) {
             return response()->json(['message' => 'Sem permissão para visualizar movimentações.'], 403);
         }
-        $query = AssetMovement::with(['asset', 'user', 'department']);
-        if ($request->filled('asset_id')) {
-            $query->where('asset_id', $request->asset_id);
+        $query = StockMovement::with(['product', 'user', 'department']);
+        if ($request->filled('product_id')) {
+            $query->where('product_id', $request->product_id);
         }
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->user_id);
@@ -24,8 +24,8 @@ class AssetMovementController extends Controller
         $movements = $query->orderByDesc('movement_date')->orderByDesc('created_at')->paginate($request->get('per_page', 30));
         $items = $movements->getCollection()->map(fn ($m) => [
             'id' => $m->id,
-            'asset_id' => $m->asset_id,
-            'asset_name' => $m->asset?->name,
+            'product_id' => $m->product_id,
+            'product_name' => $m->product?->name,
             'user_id' => $m->user_id,
             'user_name' => $m->user?->name,
             'department_id' => $m->department_id,

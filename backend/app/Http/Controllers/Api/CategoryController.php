@@ -79,8 +79,8 @@ class CategoryController extends Controller
         if (!$request->user()->can('manage_users')) {
             return response()->json(['message' => 'Sem permissão para excluir categorias.'], 403);
         }
-        if ($category->assets()->exists()) {
-            return response()->json(['message' => 'Não é possível excluir categoria com produtos vinculados.'], 422);
+        if ($category->products()->exists() || $category->fixedAssets()->exists()) {
+            return response()->json(['message' => 'Não é possível excluir categoria com produtos ou ativos imobilizados vinculados.'], 422);
         }
         $category->delete();
         return response()->json(null, 204);

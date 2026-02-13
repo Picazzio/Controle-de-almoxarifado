@@ -56,26 +56,26 @@ const SolicitarProdutos = () => {
       toast.error(`Quantidade disponível: ${available}`);
       return;
     }
-    const existing = cart.find((c) => c.asset_id === product.id);
+    const existing = cart.find((c) => c.product_id === product.id);
     const newQty = existing ? Math.min(existing.quantity + q, available) : q;
     if (existing) {
-      setCart(cart.map((c) => c.asset_id === product.id ? { ...c, quantity: newQty } : c));
+      setCart(cart.map((c) => c.product_id === product.id ? { ...c, quantity: newQty } : c));
     } else {
-      setCart([...cart, { asset_id: product.id, quantity: newQty, name: product.name, code: product.code }]);
+      setCart([...cart, { product_id: product.id, quantity: newQty, name: product.name, code: product.code }]);
     }
     toast.success(`${product.name} adicionado à solicitação`);
   };
 
-  const removeFromCart = (assetId) => {
-    setCart(cart.filter((c) => c.asset_id !== assetId));
+  const removeFromCart = (productId) => {
+    setCart(cart.filter((c) => c.product_id !== productId));
   };
 
-  const updateCartQty = (assetId, qty) => {
+  const updateCartQty = (productId, qty) => {
     const n = Math.max(1, parseInt(qty, 10) || 1);
-    const product = products.find((p) => p.id === assetId);
+    const product = products.find((p) => p.id === productId);
     const maxQty = product ? product.quantity : 999;
     const clamped = Math.min(n, maxQty);
-    setCart(cart.map((c) => c.asset_id === assetId ? { ...c, quantity: clamped } : c));
+    setCart(cart.map((c) => c.product_id === productId ? { ...c, quantity: clamped } : c));
   };
 
   const submitRequest = (e) => {
@@ -86,7 +86,7 @@ const SolicitarProdutos = () => {
     }
     setSubmitting(true);
     api.post('/stock-requests', {
-      items: cart.map((c) => ({ asset_id: c.asset_id, quantity: c.quantity })),
+      items: cart.map((c) => ({ product_id: c.product_id, quantity: c.quantity })),
       notes: notes.trim() || undefined,
     })
       .then(() => {
@@ -218,7 +218,7 @@ const SolicitarProdutos = () => {
                 <>
                   <ul className="space-y-2 max-h-48 overflow-y-auto">
                     {cart.map((c) => (
-                      <li key={c.asset_id} className="flex items-center justify-between gap-2 py-2 border-b border-border last:border-0">
+                      <li key={c.product_id} className="flex items-center justify-between gap-2 py-2 border-b border-border last:border-0">
                         <div className="min-w-0 flex-1">
                           <p className="font-medium text-sm truncate">{c.name}</p>
                           {c.code && <p className="text-xs text-muted-foreground">{c.code}</p>}
@@ -229,14 +229,14 @@ const SolicitarProdutos = () => {
                             min={1}
                             className="w-16 h-8 text-center text-sm"
                             value={c.quantity}
-                            onChange={(e) => updateCartQty(c.asset_id, e.target.value)}
+                            onChange={(e) => updateCartQty(c.product_id, e.target.value)}
                           />
                           <Button
                             type="button"
                             size="icon"
                             variant="ghost"
                             className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => removeFromCart(c.asset_id)}
+                            onClick={() => removeFromCart(c.product_id)}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>

@@ -13,6 +13,16 @@ import {
   DialogTrigger,
 } from '../components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -34,6 +44,9 @@ const Categories = () => {
   const [formName, setFormName] = useState('');
   const [sortBy, setSortBy] = useState('name');
   const [sortDir, setSortDir] = useState('asc');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadCategories = useCallback(() => {
     const params = { sort_by: sortBy, sort_dir: sortDir };
@@ -92,13 +105,23 @@ const Categories = () => {
       .catch((err) => toast.error(err.response?.data?.message || 'Erro ao atualizar.'));
   };
 
-  const handleDelete = (id) => {
-    api.delete(`/categories/${id}`)
+  const openDeleteDialog = (cat) => {
+    setCategoryToDelete(cat);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!categoryToDelete) return;
+    setDeleting(true);
+    api.delete(`/categories/${categoryToDelete.id}`)
       .then(() => {
-        setCategories((prev) => prev.filter((c) => c.id !== id));
+        setCategories((prev) => prev.filter((c) => c.id !== categoryToDelete.id));
+        setDeleteDialogOpen(false);
+        setCategoryToDelete(null);
         toast.success('Categoria removida com sucesso!');
       })
-      .catch((err) => toast.error(err.response?.data?.message || 'Erro ao remover.'));
+      .catch((err) => toast.error(err.response?.data?.message || 'Erro ao remover.'))
+      .finally(() => setDeleting(false));
   };
 
   const openEditDialog = (cat) => {
@@ -199,7 +222,7 @@ const Categories = () => {
                           </Button>
                           <Button
                             data-testid={`delete-category-${cat.id}`}
-                            onClick={() => handleDelete(cat.id)}
+                            onClick={() => openDeleteDialog(cat)}
                             variant="ghost"
                             size="sm"
                             className="hover:bg-red-50 hover:text-red-600"
@@ -220,6 +243,27 @@ const Categories = () => {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => { if (!open) setCategoryToDelete(null); setDeleteDialogOpen(open); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir categoria</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta categoria?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleConfirmDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-md">

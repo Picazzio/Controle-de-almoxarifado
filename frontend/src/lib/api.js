@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'sonner';
 
 const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
@@ -20,6 +21,9 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
+    }
+    if (error.response?.status === 429) {
+      toast.error('Muitas requisições. Aguarde um momento e tente novamente.');
     }
     return Promise.reject(error);
   }

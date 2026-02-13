@@ -12,8 +12,13 @@ class Category extends Model
 
     protected $fillable = ['name'];
 
-    public function assets(): HasMany
+    public function products(): HasMany
     {
-        return $this->hasMany(Asset::class);
+        return $this->hasMany(Product::class);
+    }
+
+    public function fixedAssets(): HasMany
+    {
+        return $this->hasMany(FixedAsset::class);
     }
 }

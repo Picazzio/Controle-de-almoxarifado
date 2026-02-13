@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../lib/api';
-import { canAccessUsers, canAccessLogs, canAccessDepartments, canAccessCategories, canRequestProducts, canAccessProductsPage, canViewStockRequests, canAccessDashboard } from '../lib/permissions';
+import { canAccessUsers, canAccessLogs, canAccessDepartments, canAccessCategories, canAccessPatrimonio, canRequestProducts, canAccessProductsPage, canViewStockRequests, canAccessDashboard } from '../lib/permissions';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import {
@@ -21,6 +21,7 @@ import {
   Users,
   Building2,
   FolderTree,
+  Tag,
   Clock,
   Menu,
   X,
@@ -111,6 +112,7 @@ const Layout = ({ children }) => {
     ...(canRequestProducts(user) ? [{ name: 'Solicitar Produtos', href: '/solicitar-produtos', icon: ClipboardList }] : []),
     ...(canAccessDepartments(user) ? [{ name: 'Departamentos', href: '/departments', icon: Building2 }] : []),
     ...(canAccessCategories(user) ? [{ name: 'Categorias', href: '/categories', icon: FolderTree }] : []),
+    ...(canAccessPatrimonio(user) ? [{ name: 'Patrimônio', href: '/patrimonio', icon: Tag }] : []),
     ...(canAccessUsers(user) ? [{ name: 'Usuários', href: '/users', icon: Users }] : []),
     ...(canViewStockRequests(user) ? [{ name: 'Solicitações', href: '/solicitacoes', icon: Inbox }] : []),
     ...(canAccessLogs(user) ? [{ name: 'Logs de Atividade', href: '/logs', icon: Clock }] : []),
@@ -260,13 +262,13 @@ const Layout = ({ children }) => {
         </div>
       </header>
 
-      {/* Sidebar */}
+      {/* Sidebar / Menu mobile - z-[100] para abrir por cima do header (z-50) e itens não ficarem escondidos */}
       <aside
-        className={`fixed left-0 top-16 bottom-0 w-64 bg-card border-r border-border transform transition-transform duration-300 ease-in-out z-40 ${
+        className={`fixed left-0 top-0 bottom-0 w-64 bg-card border-r border-border transform transition-transform duration-300 ease-in-out z-[100] lg:z-40 lg:top-16 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
       >
-        <nav className="p-4 space-y-2">
+        <nav className="p-4 pt-20 space-y-2 lg:pt-4">
           {navigation.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
@@ -295,17 +297,17 @@ const Layout = ({ children }) => {
         </nav>
       </aside>
 
-      {/* Main Content */}
-      <main className="pt-16 lg:pl-64 min-h-screen">
+      {/* Main Content - pt compensa o header fixo (nada fica atrás do header) */}
+      <main className="pt-20 lg:pl-64 min-h-screen lg:pt-16">
         <div className="p-6">
           {children}
         </div>
       </main>
 
-      {/* Overlay for mobile */}
+      {/* Overlay for mobile - z-[99] para ficar acima do header e abaixo do menu (z-[100]) */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm z-30 lg:hidden"
+          className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm z-[99] lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}

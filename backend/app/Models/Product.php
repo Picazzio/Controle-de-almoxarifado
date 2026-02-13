@@ -10,9 +10,11 @@ use Spatie\Activitylog\Contracts\Activity;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class Asset extends Model
+class Product extends Model
 {
     use HasFactory, LogsActivity;
+
+    protected $table = 'products';
 
     protected $fillable = [
         'name',
@@ -56,6 +58,6 @@ class Asset extends Model
 
     public function movements(): HasMany
     {
-        return $this->hasMany(AssetMovement::class);
+        return $this->hasMany(StockMovement::class, 'product_id');
     }
 }

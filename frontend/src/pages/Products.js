@@ -23,6 +23,16 @@ import {
   DialogTrigger,
 } from '../components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -34,6 +44,7 @@ import { SortableTableHead } from '../components/ui/sortable-table-head';
 import { Badge } from '../components/ui/badge';
 import { Plus, Search, Edit, Trash2, Filter, Download, Package, Send, ArrowDownToLine } from 'lucide-react';
 import { toast } from 'sonner';
+import PaginationBar from '../components/PaginationBar';
 
 const STATUS_OPTIONS = [
   { label: 'Disponível', value: 'disponivel' },
@@ -41,8 +52,6 @@ const STATUS_OPTIONS = [
   { label: 'Manutenção', value: 'manutencao' },
   { label: 'Descartado', value: 'descartado' },
 ];
-
-const ALMOXARIFADO_VALUE = '__almoxarifado__';
 
 /** Formulário de item do almoxarifado */
 function ProductForm({
@@ -178,14 +187,13 @@ function ProductForm({
         <div className="space-y-2">
           <Label htmlFor="location">Localização (departamento)</Label>
           <Select
-            value={formData.department_id === '' || formData.department_id == null ? ALMOXARIFADO_VALUE : String(formData.department_id)}
-            onValueChange={(value) => onFieldChange('department_id', value === ALMOXARIFADO_VALUE ? '' : value)}
+            value={formData.department_id === '' || formData.department_id == null ? '' : String(formData.department_id)}
+            onValueChange={(value) => onFieldChange('department_id', value)}
           >
             <SelectTrigger data-testid="product-location-select">
-              <SelectValue placeholder="Almoxarifado" />
+              <SelectValue placeholder="Selecione o departamento" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALMOXARIFADO_VALUE}>Almoxarifado</SelectItem>
               {departments.map((dept) => (
                 <SelectItem key={dept.id} value={String(dept.id)}>{dept.name}</SelectItem>
               ))}
@@ -263,15 +271,56 @@ const Products = () => {
     estoque_minimo: 0,
     description: ''
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const DEFAULT_PER_PAGE = 15;
+  const PER_PAGE_OPTIONS = [15, 25, 50, 100];
+  const [pagination, setPagination] = useState(() => {
+    const saved = localStorage.getItem('products-per-page');
+    const perPage = saved ? parseInt(saved, 10) : DEFAULT_PER_PAGE;
+    const valid = PER_PAGE_OPTIONS.includes(perPage) ? perPage : DEFAULT_PER_PAGE;
+    return {
+      current_page: 1,
+      last_page: 1,
+      per_page: valid,
+      total: 0,
+    };
+  });
 
-  const loadProducts = useCallback(() => {
-    const params = { per_page: 200, sort_by: sortBy, sort_dir: sortDir };
+  const loadProducts = useCallback((page, perPage) => {
+    const params = { page, per_page: perPage, sort_by: sortBy, sort_dir: sortDir };
     if (searchTerm) params.search = searchTerm;
     if (filterCategory !== 'all') params.category_id = filterCategory;
     return api.get('/products', { params }).then((res) => {
       setProducts(res.data.data || []);
+      setPagination((prev) => ({
+        ...prev,
+        current_page: res.data.current_page ?? 1,
+        last_page: res.data.last_page ?? 1,
+        total: res.data.total ?? 0,
+      }));
     });
   }, [searchTerm, filterCategory, sortBy, sortDir]);
+
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, current_page: 1 }));
+  }, [searchTerm, filterCategory]);
+
+  useEffect(() => {
+    if (loading) return;
+    setLoading(true);
+    loadProducts(pagination.current_page, pagination.per_page).finally(() => setLoading(false));
+  }, [loading, pagination.current_page, pagination.per_page]);
+
+  const handlePageChange = (newPage) => {
+    setPagination((prev) => ({ ...prev, current_page: newPage }));
+  };
+
+  const handlePerPageChange = (newPerPage) => {
+    localStorage.setItem('products-per-page', String(newPerPage));
+    setPagination((prev) => ({ ...prev, per_page: newPerPage, current_page: 1 }));
+  };
 
   const handleSort = (column) => {
     if (sortBy === column) {
@@ -293,17 +342,13 @@ const Products = () => {
   }, []);
 
   useEffect(() => {
-    if (!loading) loadProducts();
-  }, [loading, loadProducts]);
-
-  useEffect(() => {
-    const onRefocus = () => loadProducts();
+    const onRefocus = () => refetchProducts();
     window.addEventListener('app:refocus', onRefocus);
     return () => window.removeEventListener('app:refocus', onRefocus);
-  }, [loadProducts]);
+  }, [loadProducts, pagination.current_page, pagination.per_page]);
 
   const refetchProducts = () => {
-    loadProducts();
+    loadProducts(pagination.current_page, pagination.per_page);
   };
 
   const handleAddProduct = (e) => {
@@ -312,7 +357,7 @@ const Products = () => {
       name: formData.name,
       brand: formData.brand || null,
       category_id: Number(formData.category_id),
-      department_id: formData.department_id && formData.department_id !== ALMOXARIFADO_VALUE ? Number(formData.department_id) : null,
+      department_id: formData.department_id ? Number(formData.department_id) : null,
       value: parseFloat(formData.value),
       status: formData.status,
       quantity: Math.max(0, parseInt(formData.quantity, 10) || 0),
@@ -334,7 +379,7 @@ const Products = () => {
       name: formData.name,
       brand: formData.brand || null,
       category_id: Number(formData.category_id),
-      department_id: formData.department_id && formData.department_id !== ALMOXARIFADO_VALUE ? Number(formData.department_id) : null,
+      department_id: formData.department_id ? Number(formData.department_id) : null,
       value: parseFloat(formData.value),
       status: formData.status,
       estoque_minimo: Math.max(0, parseInt(formData.estoque_minimo, 10) || 0),
@@ -351,13 +396,28 @@ const Products = () => {
       .catch((err) => toast.error(err.response?.data?.message || 'Erro ao atualizar.'));
   };
 
-  const handleDeleteProduct = (id) => {
-    api.delete(`/products/${id}`)
+  const openDeleteDialog = (product) => {
+    setProductToDelete(product);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!productToDelete) return;
+    setDeleting(true);
+    api.delete(`/products/${productToDelete.id}`)
       .then(() => {
-        setProducts((prev) => prev.filter((p) => p.id !== id));
+        setDeleteDialogOpen(false);
+        setProductToDelete(null);
+        const isLastOnPage = products.length === 1 && pagination.current_page > 1;
+        if (isLastOnPage) {
+          setPagination((prev) => ({ ...prev, current_page: prev.current_page - 1 }));
+        } else {
+          loadProducts(pagination.current_page, pagination.per_page);
+        }
         toast.success('Item removido do almoxarifado!');
       })
-      .catch((err) => toast.error(err.response?.data?.message || 'Erro ao remover.'));
+      .catch((err) => toast.error(err.response?.data?.message || 'Erro ao remover.'))
+      .finally(() => setDeleting(false));
   };
 
   const openEditDialog = (product) => {
@@ -464,7 +524,7 @@ const Products = () => {
       p.value,
       p.value_total ?? (Number(p.value) * (p.quantity ?? 0)),
       p.quantity ?? 0,
-      p.location || 'Almoxarifado'
+      p.location ?? '-'
     ]);
     
     const csv = [
@@ -554,7 +614,6 @@ const Products = () => {
           </div>
           <div className="mt-4 flex justify-between items-center">
             <p className="text-sm text-muted-foreground">
-              Mostrando <span className="font-semibold">{filteredProducts.length}</span> itens
             </p>
             {canExport && (
             <Button data-testid="export-csv-btn" onClick={exportToCSV} variant="outline" size="sm" className="flex items-center gap-2">
@@ -594,7 +653,7 @@ const Products = () => {
                     <TableCell>R$ {Number(product.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                     <TableCell className="text-right">R$ {Number(product.value_total ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                     <TableCell className="text-center font-medium">{product.quantity ?? 0}</TableCell>
-                    <TableCell>{product.location || 'Almoxarifado'}</TableCell>
+                    <TableCell>{product.location ?? '-'}</TableCell>
                     {(canUpdate || canDelete) && (
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -636,7 +695,7 @@ const Products = () => {
                         {canDelete && (
                         <Button
                           data-testid={`delete-product-${product.id}`}
-                          onClick={() => handleDeleteProduct(product.id)}
+                          onClick={() => openDeleteDialog(product)}
                           variant="ghost"
                           size="sm"
                           className="hover:bg-red-50 hover:text-red-600"
@@ -652,8 +711,36 @@ const Products = () => {
               </TableBody>
             </Table>
           </div>
+          <PaginationBar
+            pagination={pagination}
+            onPageChange={handlePageChange}
+            onPerPageChange={handlePerPageChange}
+            className="px-6 pb-4"
+          />
         </CardContent>
       </Card>
+
+      {/* Confirmação de exclusão (padrão igual ao Patrimônio) */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => { if (!open) setProductToDelete(null); setDeleteDialogOpen(open); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir produto</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este produto?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleConfirmDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

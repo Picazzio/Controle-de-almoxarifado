@@ -54,9 +54,9 @@ class User extends Authenticatable
         return $this->belongsTo(Department::class);
     }
 
-    public function assetMovements(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function stockMovements(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(AssetMovement::class);
+        return $this->hasMany(StockMovement::class);
     }
 
     public function stockRequests(): \Illuminate\Database\Eloquent\Relations\HasMany

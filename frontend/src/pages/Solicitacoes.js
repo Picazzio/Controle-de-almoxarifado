@@ -21,11 +21,28 @@ import {
   DialogTitle,
   DialogDescription,
 } from '../components/ui/dialog';
-import { ClipboardList, User, Calendar, Package, ArrowRight, Building2, Printer } from 'lucide-react';
+import { ClipboardList, User, Calendar, Package, ArrowRight, Building2, Printer, PackageSearch, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import PaginationBar from '../components/PaginationBar';
 
-const STATUS_LABEL = { pendente: 'Pendente', atendida: 'Atendida', cancelada: 'Cancelada' };
-const STATUS_VARIANT = { pendente: 'default', atendida: 'secondary', cancelada: 'outline' };
+const STATUS_LABEL = {
+  pendente: 'Pendente',
+  separation: 'Em Separação',
+  atendida: 'Atendida',
+  cancelada: 'Cancelada',
+};
+const STATUS_VARIANT = {
+  pendente: 'default',
+  separation: 'outline',
+  atendida: 'secondary',
+  cancelada: 'outline',
+};
+const STATUS_BADGE_CLASS = {
+  pendente: '',
+  separation: 'bg-amber-100 text-amber-800 border-amber-200',
+  atendida: '',
+  cancelada: '',
+};
 
 const Solicitações = () => {
   const { user } = useAuth();
@@ -35,39 +52,66 @@ const Solicitações = () => {
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [fulfilling, setFulfilling] = useState(false);
+  const [startingSeparation, setStartingSeparation] = useState(false);
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    per_page: 15,
+    total: 0,
+  });
 
-  const loadRequests = () => {
+  const loadRequests = (page = 1, perPage = pagination.per_page) => {
     setLoading(true);
-    const params = canViewAll ? { all: 1, per_page: 50 } : { per_page: 50 };
+    const params = canViewAll ? { all: 1, page, per_page: perPage } : { page, per_page: perPage };
     api.get('/stock-requests', { params })
-      .then((res) => setRequests(res.data?.data ?? []))
+      .then((res) => {
+        setRequests(res.data?.data ?? []);
+        setPagination({
+          current_page: res.data?.current_page ?? 1,
+          last_page: res.data?.last_page ?? 1,
+          per_page: res.data?.per_page ?? perPage,
+          total: res.data?.total ?? 0,
+        });
+      })
       .catch(() => toast.error('Erro ao carregar solicitações'))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    loadRequests();
+    setPagination((prev) => ({ ...prev, current_page: 1 }));
   }, [canViewAll]);
 
   useEffect(() => {
-    const onRefocus = () => loadRequests();
+    loadRequests(pagination.current_page, pagination.per_page);
+  }, [canViewAll, pagination.current_page, pagination.per_page]);
+
+  useEffect(() => {
+    const onRefocus = () => loadRequests(pagination.current_page, pagination.per_page);
     window.addEventListener('app:refocus', onRefocus);
     return () => window.removeEventListener('app:refocus', onRefocus);
-  }, [canViewAll]);
+  }, [canViewAll, pagination.current_page, pagination.per_page]);
 
-  const printRequest = (req) => {
+  const handlePageChange = (newPage) => {
+    setPagination((prev) => ({ ...prev, current_page: newPage }));
+  };
+
+  const handlePerPageChange = (newPerPage) => {
+    setPagination((prev) => ({ ...prev, per_page: newPerPage, current_page: 1 }));
+  };
+
+  const openPrintWindow = (req, title = 'Solicitação', subtitle = 'Itens solicitados') => {
     const items = (req.items ?? [])
       .map(
         (i) =>
-          `<tr><td style="border:1px solid #ddd;padding:8px">${i.asset_code ?? '-'}</td><td style="border:1px solid #ddd;padding:8px">${i.asset_name ?? '-'}</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${i.quantity ?? 0}</td></tr>`
+          `<tr><td style="border:1px solid #ddd;padding:8px">${i.product_code ?? '-'}</td><td style="border:1px solid #ddd;padding:8px">${i.product_name ?? '-'}</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${i.quantity ?? 0}</td></tr>`
       )
       .join('');
     const html = `
-      <!DOCTYPE html><html><head><meta charset="utf-8"><title>Solicitação #${req.id}</title></head><body style="font-family:sans-serif;padding:20px">
-      <h1>Solicitação #${req.id}</h1>
+      <!DOCTYPE html><html><head><meta charset="utf-8"><title>${title} #${req.id}</title></head><body style="font-family:sans-serif;padding:20px">
+      <h1>${title} #${req.id}</h1>
       <p><strong>Solicitante:</strong> ${req.user_name ?? '-'} &nbsp;|&nbsp; <strong>Departamento:</strong> ${req.user_department ?? '-'}</p>
-      <p><strong>Data:</strong> ${req.created_at ?? '-'} &nbsp;|&nbsp; <strong>Status:</strong> ${req.status ?? '-'}</p>
-      <h2>Itens solicitados</h2>
+      <p><strong>Data:</strong> ${req.created_at ?? '-'} &nbsp;|&nbsp; <strong>Status:</strong> ${STATUS_LABEL[req.status] ?? req.status}</p>
+      <h2>${subtitle}</h2>
       <table style="border-collapse:collapse;width:100%;max-width:400px">
         <thead><tr style="background:#f5f5f5"><th style="border:1px solid #ddd;padding:8px;text-align:left">Código</th><th style="border:1px solid #ddd;padding:8px;text-align:left">Produto</th><th style="border:1px solid #ddd;padding:8px;text-align:right">Qtd</th></tr></thead>
         <tbody>${items}</tbody>
@@ -89,21 +133,36 @@ const Solicitações = () => {
     }, 250);
   };
 
-  const handleImprimirEAtender = () => {
+  const printList = (req) => openPrintWindow(req, 'Lista para Separação', 'Itens a separar');
+  const printReceipt = (req) => openPrintWindow(req, 'Recibo - Solicitação Atendida', 'Itens entregues');
+
+  const handleStartSeparation = () => {
     if (!selectedRequest || selectedRequest.status !== 'pendente') return;
+    setStartingSeparation(true);
+    api
+      .post(`/stock-requests/${selectedRequest.id}/start-separation`)
+      .then((res) => {
+        const updated = res.data?.request ?? selectedRequest;
+        setSelectedRequest(updated);
+        loadRequests(pagination.current_page, pagination.per_page);
+        toast.success(res.data?.message ?? 'Separação iniciada.');
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? 'Erro ao iniciar separação.'))
+      .finally(() => setStartingSeparation(false));
+  };
+
+  const handleFinalizar = () => {
+    if (!selectedRequest || !['pendente', 'separation'].includes(selectedRequest.status)) return;
     setFulfilling(true);
     api
       .post(`/stock-requests/${selectedRequest.id}/fulfill`)
       .then((res) => {
         const updated = res.data?.request ?? selectedRequest;
         setSelectedRequest(updated);
-        loadRequests();
+        loadRequests(pagination.current_page, pagination.per_page);
         toast.success(res.data?.message ?? 'Solicitação atendida.');
-        printRequest(updated);
       })
-      .catch((err) => {
-        toast.error(err.response?.data?.message ?? 'Erro ao atender solicitação.');
-      })
+      .catch((err) => toast.error(err.response?.data?.message ?? 'Erro ao atender solicitação.'))
       .finally(() => setFulfilling(false));
   };
 
@@ -134,6 +193,7 @@ const Solicitações = () => {
           ) : requests.length === 0 ? (
             <p className="py-8 text-center text-muted-foreground">Nenhuma solicitação encontrada.</p>
           ) : (
+            <>
             <div className="overflow-x-auto rounded-lg border border-border">
               <Table>
                 <TableHeader>
@@ -161,7 +221,10 @@ const Solicitações = () => {
                         </TableCell>
                       )}
                       <TableCell>
-                        <Badge variant={STATUS_VARIANT[r.status] || 'outline'}>
+                        <Badge
+                          variant={STATUS_VARIANT[r.status] || 'outline'}
+                          className={STATUS_BADGE_CLASS[r.status] ?? ''}
+                        >
                           {STATUS_LABEL[r.status] ?? r.status}
                         </Badge>
                       </TableCell>
@@ -180,6 +243,12 @@ const Solicitações = () => {
                 </TableBody>
               </Table>
             </div>
+            <PaginationBar
+              pagination={pagination}
+              onPageChange={handlePageChange}
+              onPerPageChange={handlePerPageChange}
+            />
+            </>
           )}
         </CardContent>
       </Card>
@@ -220,7 +289,10 @@ const Solicitações = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">Status:</span>
-                  <Badge variant={STATUS_VARIANT[selectedRequest.status] || 'outline'}>
+                  <Badge
+                    variant={STATUS_VARIANT[selectedRequest.status] || 'outline'}
+                    className={STATUS_BADGE_CLASS[selectedRequest.status] ?? ''}
+                  >
                     {STATUS_LABEL[selectedRequest.status] ?? selectedRequest.status}
                   </Badge>
                 </div>
@@ -252,8 +324,8 @@ const Solicitações = () => {
                       ) : (
                         (selectedRequest.items ?? []).map((item) => (
                           <TableRow key={item.id}>
-                            <TableCell className="font-mono text-muted-foreground text-sm">{item.asset_code ?? '-'}</TableCell>
-                            <TableCell className="text-sm font-medium">{item.asset_name ?? '-'}</TableCell>
+                            <TableCell className="font-mono text-muted-foreground text-sm">{item.product_code ?? '-'}</TableCell>
+                            <TableCell className="text-sm font-medium">{item.product_name ?? '-'}</TableCell>
                             <TableCell className="text-right text-sm">{item.quantity ?? 0}</TableCell>
                           </TableRow>
                         ))
@@ -262,15 +334,37 @@ const Solicitações = () => {
                   </Table>
                 </div>
               </div>
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex flex-wrap justify-end gap-2 pt-2">
                 {canFulfill && selectedRequest.status === 'pendente' && (
                   <Button
-                    className="gap-2"
-                    onClick={handleImprimirEAtender}
-                    disabled={fulfilling}
+                    className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+                    onClick={handleStartSeparation}
+                    disabled={startingSeparation}
                   >
+                    <PackageSearch className="w-4 h-4" />
+                    {startingSeparation ? 'Iniciando...' : 'Separar'}
+                  </Button>
+                )}
+                {canFulfill && selectedRequest.status === 'separation' && (
+                  <>
+                    <Button variant="outline" className="gap-2" onClick={() => printList(selectedRequest)}>
+                      <Printer className="w-4 h-4" />
+                      Imprimir Lista
+                    </Button>
+                    <Button
+                      className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={handleFinalizar}
+                      disabled={fulfilling}
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      {fulfilling ? 'Finalizando...' : 'Finalizar'}
+                    </Button>
+                  </>
+                )}
+                {selectedRequest.status === 'atendida' && (
+                  <Button variant="outline" className="gap-2" onClick={() => printReceipt(selectedRequest)}>
                     <Printer className="w-4 h-4" />
-                    {fulfilling ? 'Atendendo...' : 'Imprimir e Atender'}
+                    Imprimir Recibo
                   </Button>
                 )}
                 <Button variant="outline" onClick={() => setSelectedRequest(null)}>

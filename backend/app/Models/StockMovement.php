@@ -9,12 +9,14 @@ use Spatie\Activitylog\Contracts\Activity;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class AssetMovement extends Model
+class StockMovement extends Model
 {
     use HasFactory, LogsActivity;
 
+    protected $table = 'stock_movements';
+
     protected $fillable = [
-        'asset_id',
+        'product_id',
         'user_id',
         'department_id',
         'type',
@@ -30,7 +32,7 @@ class AssetMovement extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['asset_id', 'user_id', 'department_id', 'type', 'quantity', 'movement_date', 'notes'])
+            ->logOnly(['product_id', 'user_id', 'department_id', 'type', 'quantity', 'movement_date', 'notes'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }
@@ -40,9 +42,9 @@ class AssetMovement extends Model
         $activity->properties = $activity->properties->merge(['ip' => request()->ip()]);
     }
 
-    public function asset(): BelongsTo
+    public function product(): BelongsTo
     {
-        return $this->belongsTo(Asset::class);
+        return $this->belongsTo(Product::class);
     }
 
     public function user(): BelongsTo

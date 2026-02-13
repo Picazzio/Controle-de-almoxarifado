@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Asset;
+use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,16 +18,16 @@ class CatalogController extends Controller
         if (!$request->user()->can('request_products')) {
             return response()->json(['message' => 'Sem permissão para visualizar e solicitar produtos.'], 403);
         }
-        $query = Asset::with('category')
+        $query = Product::with('category')
             ->where('quantity', '>', 0)
             ->where('status', 'disponivel');
 
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(function ($q) use ($s) {
-                $q->where('assets.name', 'like', "%{$s}%")
-                    ->orWhere('assets.code', 'like', "%{$s}%")
-                    ->orWhere('assets.brand', 'like', "%{$s}%");
+                $q->where('products.name', 'like', "%{$s}%")
+                    ->orWhere('products.code', 'like', "%{$s}%")
+                    ->orWhere('products.brand', 'like', "%{$s}%");
             });
         }
 
@@ -35,26 +35,26 @@ class CatalogController extends Controller
             $query->where('category_id', $request->category_id);
         }
 
-        $query->orderBy('assets.name', 'asc');
+        $query->orderBy('products.name', 'asc');
         $perPage = min((int) $request->get('per_page', 50), 100);
-        $assets = $query->paginate($perPage);
-        $items = $assets->getCollection()->map(fn ($a) => $this->formatItem($a));
-        $assets->setCollection($items);
+        $products = $query->paginate($perPage);
+        $items = $products->getCollection()->map(fn ($p) => $this->formatItem($p));
+        $products->setCollection($items);
 
-        return response()->json($assets);
+        return response()->json($products);
     }
 
-    private function formatItem(Asset $asset): array
+    private function formatItem(Product $product): array
     {
         return [
-            'id' => $asset->id,
-            'code' => $asset->code,
-            'name' => $asset->name,
-            'brand' => $asset->brand,
-            'category' => $asset->category?->name,
-            'category_id' => $asset->category_id,
-            'quantity' => (int) $asset->quantity,
-            'value' => (float) $asset->value,
+            'id' => $product->id,
+            'code' => $product->code,
+            'name' => $product->name,
+            'brand' => $product->brand,
+            'category' => $product->category?->name,
+            'category_id' => $product->category_id,
+            'quantity' => (int) $product->quantity,
+            'value' => (float) $product->value,
         ];
     }
 }

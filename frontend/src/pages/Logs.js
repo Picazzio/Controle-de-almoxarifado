@@ -23,6 +23,7 @@ import { Badge } from '../components/ui/badge';
 import { Avatar, AvatarFallback } from '../components/ui/avatar';
 import { Search, Filter, Download, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import PaginationBar from '../components/PaginationBar';
 
 const Logs = () => {
   const [logs, setLogs] = useState([]);
@@ -31,16 +32,44 @@ const Logs = () => {
   const [filterResource, setFilterResource] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    per_page: 30,
+    total: 0,
+  });
 
-  const loadLogs = useCallback(() => {
-    const params = { per_page: 100, sort_by: sortBy, sort_dir: sortDir };
+  const loadLogs = useCallback((page, perPage) => {
+    const params = { page, per_page: perPage, sort_by: sortBy, sort_dir: sortDir };
     if (searchTerm) params.search = searchTerm;
     if (filterType !== 'all') params.type = filterType;
     if (filterResource !== 'all') params.resource = filterResource;
     api.get('/logs', { params }).then((res) => {
       setLogs(res.data.data || []);
+      setPagination({
+        current_page: res.data.current_page ?? 1,
+        last_page: res.data.last_page ?? 1,
+        per_page: res.data.per_page ?? perPage,
+        total: res.data.total ?? 0,
+      });
     });
   }, [searchTerm, filterType, filterResource, sortBy, sortDir]);
+
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, current_page: 1 }));
+  }, [searchTerm, filterType, filterResource]);
+
+  useEffect(() => {
+    loadLogs(pagination.current_page, pagination.per_page);
+  }, [pagination.current_page, pagination.per_page]);
+
+  const handlePageChange = (newPage) => {
+    setPagination((prev) => ({ ...prev, current_page: newPage }));
+  };
+
+  const handlePerPageChange = (newPerPage) => {
+    setPagination((prev) => ({ ...prev, per_page: newPerPage, current_page: 1 }));
+  };
 
   const handleSort = (column) => {
     if (sortBy === column) {
@@ -178,11 +207,6 @@ const Logs = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="mt-4">
-            <p className="text-sm text-muted-foreground">
-              Mostrando <span className="font-semibold">{filteredLogs.length}</span> de <span className="font-semibold">{logs.length}</span> registros
-            </p>
-          </div>
         </CardContent>
       </Card>
 
@@ -233,6 +257,12 @@ const Logs = () => {
               </TableBody>
             </Table>
           </div>
+          <PaginationBar
+            pagination={pagination}
+            onPageChange={handlePageChange}
+            onPerPageChange={handlePerPageChange}
+            className="px-6 pb-4"
+          />
         </CardContent>
       </Card>
     </div>

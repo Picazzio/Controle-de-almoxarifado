@@ -18,13 +18,18 @@ class Department extends Model
         return $this->hasMany(User::class);
     }
 
-    public function assets(): HasMany
+    public function products(): HasMany
     {
-        return $this->hasMany(Asset::class);
+        return $this->hasMany(Product::class);
     }
 
-    public function assetMovements(): HasMany
+    public function stockMovements(): HasMany
     {
-        return $this->hasMany(AssetMovement::class);
+        return $this->hasMany(StockMovement::class);
+    }
+
+    public function fixedAssets(): HasMany
+    {
+        return $this->hasMany(FixedAsset::class);
     }
 }

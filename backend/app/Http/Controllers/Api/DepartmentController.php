@@ -99,8 +99,8 @@ class DepartmentController extends Controller
         if (!$request->user()->can('manage_users')) {
             return response()->json(['message' => 'Sem permissão para excluir departamentos.'], 403);
         }
-        if ($department->users()->exists() || $department->assets()->exists()) {
-            return response()->json(['message' => 'Não é possível excluir departamento com usuários ou produtos vinculados.'], 422);
+        if ($department->users()->exists() || $department->products()->exists() || $department->fixedAssets()->exists()) {
+            return response()->json(['message' => 'Não é possível excluir departamento com usuários, produtos ou ativos imobilizados vinculados.'], 422);
         }
         $department->delete();
         return response()->json(null, 204);

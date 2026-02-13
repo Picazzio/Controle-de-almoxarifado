@@ -3,25 +3,25 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Asset;
-use App\Models\AssetMovement;
+use App\Models\Product;
+use App\Models\StockMovement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class AssetController extends Controller
+class ProductController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
         if (!$request->user()->can('read')) {
             return response()->json(['message' => 'Sem permissão para visualizar produtos.'], 403);
         }
-        $query = Asset::with(['category', 'department']);
+        $query = Product::with(['category', 'department']);
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(function ($q) use ($s) {
-                $q->where('assets.name', 'like', "%{$s}%")
-                    ->orWhere('assets.code', 'like', "%{$s}%")
-                    ->orWhere('assets.brand', 'like', "%{$s}%")
+                $q->where('products.name', 'like', "%{$s}%")
+                    ->orWhere('products.code', 'like', "%{$s}%")
+                    ->orWhere('products.brand', 'like', "%{$s}%")
                     ->orWhereHas('department', fn ($q) => $q->where('name', 'like', "%{$s}%"));
             });
         }
@@ -35,14 +35,14 @@ class AssetController extends Controller
         $sortDir = strtolower($request->get('sort_dir', 'asc')) === 'desc' ? 'desc' : 'asc';
         $allowedSort = ['code', 'name', 'brand', 'quantity', 'value', 'status', 'created_at'];
         if (in_array($sortBy, $allowedSort)) {
-            $query->orderBy('assets.' . $sortBy, $sortDir);
+            $query->orderBy('products.' . $sortBy, $sortDir);
         } else {
-            $query->orderBy('assets.name', 'asc');
+            $query->orderBy('products.name', 'asc');
         }
-        $assets = $query->paginate($request->get('per_page', 50));
-        $items = $assets->getCollection()->map(fn ($a) => $this->formatAsset($a));
-        $assets->setCollection($items);
-        return response()->json($assets);
+        $products = $query->paginate($request->get('per_page', 50));
+        $items = $products->getCollection()->map(fn ($p) => $this->formatProduct($p));
+        $products->setCollection($items);
+        return response()->json($products);
     }
 
     public function store(Request $request): JsonResponse
@@ -64,21 +64,21 @@ class AssetController extends Controller
         $data = $request->only(['name', 'brand', 'category_id', 'department_id', 'value', 'status', 'description', 'estoque_minimo']);
         $data['quantity'] = $request->get('quantity', 0);
         $data['estoque_minimo'] = $request->get('estoque_minimo', 0);
-        $data['code'] = $this->generateAssetCode();
-        $asset = Asset::create($data);
-        return response()->json($this->formatAsset($asset->load('category', 'department')), 201);
+        $data['code'] = $this->generateProductCode();
+        $product = Product::create($data);
+        return response()->json($this->formatProduct($product->load('category', 'department')), 201);
     }
 
-    public function show(Request $request, Asset $asset): JsonResponse
+    public function show(Request $request, Product $product): JsonResponse
     {
         if (!$request->user()->can('read')) {
             return response()->json(['message' => 'Sem permissão para visualizar produtos.'], 403);
         }
-        $asset->load(['category', 'department', 'movements.user', 'movements.department']);
-        return response()->json($this->formatAsset($asset, true));
+        $product->load(['category', 'department', 'movements.user', 'movements.department']);
+        return response()->json($this->formatProduct($product, true));
     }
 
-    public function update(Request $request, Asset $asset): JsonResponse
+    public function update(Request $request, Product $product): JsonResponse
     {
         if (!$request->user()->can('update')) {
             return response()->json(['message' => 'Sem permissão para editar produtos.'], 403);
@@ -93,20 +93,20 @@ class AssetController extends Controller
             'description' => 'nullable|string',
             'estoque_minimo' => 'nullable|integer|min:0',
         ]);
-        $asset->update($request->only(['name', 'brand', 'category_id', 'department_id', 'value', 'status', 'description', 'estoque_minimo']));
-        return response()->json($this->formatAsset($asset->fresh(['category', 'department'])));
+        $product->update($request->only(['name', 'brand', 'category_id', 'department_id', 'value', 'status', 'description', 'estoque_minimo']));
+        return response()->json($this->formatProduct($product->fresh(['category', 'department'])));
     }
 
-    public function destroy(Request $request, Asset $asset): JsonResponse
+    public function destroy(Request $request, Product $product): JsonResponse
     {
         if (!$request->user()->can('delete')) {
             return response()->json(['message' => 'Sem permissão para excluir produtos.'], 403);
         }
-        $asset->delete();
+        $product->delete();
         return response()->json(null, 204);
     }
 
-    public function withdraw(Request $request, Asset $asset): JsonResponse
+    public function withdraw(Request $request, Product $product): JsonResponse
     {
         if (!$request->user()->can('update')) {
             return response()->json(['message' => 'Sem permissão para realizar retiradas.'], 403);
@@ -118,11 +118,11 @@ class AssetController extends Controller
             'notes' => 'nullable|string',
         ]);
         $quantity = $request->get('quantity', 1);
-        if ($asset->quantity < $quantity) {
+        if ($product->quantity < $quantity) {
             return response()->json(['message' => 'Quantidade indisponível.'], 422);
         }
-        $movement = AssetMovement::create([
-            'asset_id' => $asset->id,
+        $movement = StockMovement::create([
+            'product_id' => $product->id,
             'user_id' => $request->user_id,
             'department_id' => $request->department_id,
             'type' => 'retirada',
@@ -130,17 +130,17 @@ class AssetController extends Controller
             'movement_date' => $request->get('movement_date', now()->format('Y-m-d')),
             'notes' => $request->notes,
         ]);
-        $asset->decrement('quantity', $quantity);
-        $asset->update(['department_id' => $request->department_id]);
-        if ($asset->quantity <= 0) {
-            $asset->update(['status' => 'em_uso']);
+        $product->decrement('quantity', $quantity);
+        $product->update(['department_id' => $request->department_id]);
+        if ($product->quantity <= 0) {
+            $product->update(['status' => 'em_uso']);
         }
-        $movement->load(['user', 'department', 'asset']);
+        $movement->load(['user', 'department', 'product']);
         return response()->json([
             'message' => 'Retirada registrada.',
             'movement' => [
                 'id' => $movement->id,
-                'asset_name' => $movement->asset->name,
+                'product_name' => $movement->product->name,
                 'user_name' => $movement->user->name,
                 'department_name' => $movement->department?->name,
                 'type' => $movement->type,
@@ -151,7 +151,7 @@ class AssetController extends Controller
         ], 201);
     }
 
-    public function entry(Request $request, Asset $asset): JsonResponse
+    public function entry(Request $request, Product $product): JsonResponse
     {
         if (!$request->user()->can('update')) {
             return response()->json(['message' => 'Sem permissão para registrar entrada.'], 403);
@@ -161,8 +161,8 @@ class AssetController extends Controller
             'notes' => 'nullable|string',
         ]);
         $quantity = $request->integer('quantity');
-        $movement = AssetMovement::create([
-            'asset_id' => $asset->id,
+        $movement = StockMovement::create([
+            'product_id' => $product->id,
             'user_id' => $request->user()->id,
             'department_id' => null,
             'type' => 'entrada',
@@ -170,9 +170,9 @@ class AssetController extends Controller
             'movement_date' => $request->get('movement_date', now()->format('Y-m-d')),
             'notes' => $request->notes,
         ]);
-        $asset->increment('quantity', $quantity);
-        if ($asset->quantity > 0 && $asset->status === 'em_uso') {
-            $asset->update(['status' => 'disponivel']);
+        $product->increment('quantity', $quantity);
+        if ($product->quantity > 0 && $product->status === 'em_uso') {
+            $product->update(['status' => 'disponivel']);
         }
         return response()->json([
             'message' => 'Entrada registrada.',
@@ -186,7 +186,7 @@ class AssetController extends Controller
         ], 201);
     }
 
-    private function formatAsset(Asset $asset, bool $withMovements = false): array
+    private function formatProduct(Product $product, bool $withMovements = false): array
     {
         $statusMap = [
             'em_uso' => 'Em Uso',
@@ -194,28 +194,28 @@ class AssetController extends Controller
             'manutencao' => 'Manutenção',
             'descartado' => 'Descartado',
         ];
-        $qty = (int) $asset->quantity;
-        $unitValue = (float) $asset->value;
+        $qty = (int) $product->quantity;
+        $unitValue = (float) $product->value;
         $data = [
-            'id' => $asset->id,
-            'code' => $asset->code,
-            'name' => $asset->name,
-            'brand' => $asset->brand,
-            'category' => $asset->category?->name,
-            'category_id' => $asset->category_id,
-            'location' => $asset->department?->name ?? 'Almoxarifado',
-            'department_id' => $asset->department_id,
+            'id' => $product->id,
+            'code' => $product->code,
+            'name' => $product->name,
+            'brand' => $product->brand,
+            'category' => $product->category?->name,
+            'category_id' => $product->category_id,
+            'location' => $product->department?->name ?? 'Almoxarifado',
+            'department_id' => $product->department_id,
             'value' => $unitValue,
             'value_total' => round($unitValue * $qty, 2),
-            'status' => $statusMap[$asset->status] ?? $asset->status,
-            'status_key' => $asset->status,
-            'description' => $asset->description,
+            'status' => $statusMap[$product->status] ?? $product->status,
+            'status_key' => $product->status,
+            'description' => $product->description,
             'quantity' => $qty,
-            'estoque_minimo' => (int) ($asset->estoque_minimo ?? 0),
-            'date' => $asset->created_at->format('Y-m-d'),
+            'estoque_minimo' => (int) ($product->estoque_minimo ?? 0),
+            'date' => $product->created_at->format('Y-m-d'),
         ];
-        if ($withMovements && $asset->relationLoaded('movements')) {
-            $data['movements'] = $asset->movements->map(function ($m) {
+        if ($withMovements && $product->relationLoaded('movements')) {
+            $data['movements'] = $product->movements->map(function ($m) {
                 return [
                     'id' => $m->id,
                     'user_name' => $m->user?->name,
@@ -230,11 +230,11 @@ class AssetController extends Controller
         return $data;
     }
 
-    private function generateAssetCode(): string
+    private function generateProductCode(): string
     {
-        $last = Asset::whereNotNull('code')
+        $last = Product::whereNotNull('code')
             ->get()
-            ->max(fn ($a) => preg_match('/^\d{4}$/', (string) $a->code) ? (int) $a->code : 0);
+            ->max(fn ($p) => preg_match('/^\d{4}$/', (string) $p->code) ? (int) $p->code : 0);
         $num = ($last ?? 0) + 1;
         return str_pad((string) $num, 4, '0', STR_PAD_LEFT);
     }

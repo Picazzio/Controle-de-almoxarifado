@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Asset;
-use App\Models\AssetMovement;
+use App\Models\Product;
+use App\Models\StockMovement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,14 +16,14 @@ class DashboardController extends Controller
             return response()->json(['message' => 'Sem permissão para acessar o dashboard.'], 403);
         }
 
-        $totalItems = Asset::sum('quantity');
-        $totalValue = (float) Asset::selectRaw('SUM(value * quantity) as total')->value('total') ?? 0;
-        $inUse = Asset::where('status', 'em_uso')->sum('quantity');
-        $available = Asset::where('status', 'disponivel')->sum('quantity');
-        $maintenance = Asset::where('status', 'manutencao')->sum('quantity');
-        $discarded = Asset::where('status', 'descartado')->sum('quantity');
+        $totalItems = Product::sum('quantity');
+        $totalValue = (float) Product::selectRaw('SUM(value * quantity) as total')->value('total') ?? 0;
+        $inUse = Product::where('status', 'em_uso')->sum('quantity');
+        $available = Product::where('status', 'disponivel')->sum('quantity');
+        $maintenance = Product::where('status', 'manutencao')->sum('quantity');
+        $discarded = Product::where('status', 'descartado')->sum('quantity');
 
-        $lowStockCount = Asset::whereRaw('quantity <= COALESCE(estoque_minimo, 0)')->count();
+        $lowStockCount = Product::whereRaw('quantity <= COALESCE(estoque_minimo, 0)')->count();
         $monthlyConsumptionValue = $this->getMonthlyConsumptionValue();
         $topConsumedProducts = $this->getTopConsumedProducts();
         $spendingBySector = $this->getSpendingBySector();
@@ -53,12 +53,12 @@ class DashboardController extends Controller
         $start = now()->startOfMonth();
         $end = now()->endOfMonth();
         $total = 0;
-        AssetMovement::where('type', '!=', 'entrada')
+        StockMovement::where('type', '!=', 'entrada')
             ->whereBetween('movement_date', [$start, $end])
-            ->with('asset:id,value')
+            ->with('product:id,value')
             ->get()
             ->each(function ($m) use (&$total) {
-                $total += (float) $m->quantity * (float) ($m->asset?->value ?? 0);
+                $total += (float) $m->quantity * (float) ($m->product?->value ?? 0);
             });
         return round($total, 2);
     }
@@ -68,19 +68,19 @@ class DashboardController extends Controller
         $start = now()->startOfMonth();
         $end = now()->endOfMonth();
         $aggregated = [];
-        AssetMovement::where('type', '!=', 'entrada')
+        StockMovement::where('type', '!=', 'entrada')
             ->whereBetween('movement_date', [$start, $end])
-            ->selectRaw('asset_id, SUM(quantity) as total_qty')
-            ->groupBy('asset_id')
+            ->selectRaw('product_id, SUM(quantity) as total_qty')
+            ->groupBy('product_id')
             ->orderByRaw('SUM(quantity) DESC')
             ->limit(5)
             ->get()
             ->each(function ($row) use (&$aggregated) {
-                $asset = Asset::find($row->asset_id);
-                if ($asset) {
+                $product = Product::find($row->product_id);
+                if ($product) {
                     $aggregated[] = [
-                        'name' => $asset->name,
-                        'code' => $asset->code,
+                        'name' => $product->name,
+                        'code' => $product->code,
                         'quantidade' => (int) $row->total_qty,
                     ];
                 }
@@ -93,14 +93,14 @@ class DashboardController extends Controller
         $start = now()->startOfMonth();
         $end = now()->endOfMonth();
         $byDept = [];
-        AssetMovement::where('type', '!=', 'entrada')
+        StockMovement::where('type', '!=', 'entrada')
             ->whereNotNull('department_id')
             ->whereBetween('movement_date', [$start, $end])
-            ->with(['asset:id,value', 'department:id,name'])
+            ->with(['product:id,value', 'department:id,name'])
             ->get()
             ->groupBy('department_id')
             ->each(function ($movements, $deptId) use (&$byDept) {
-                $valor = $movements->sum(fn ($m) => (float) $m->quantity * (float) ($m->asset?->value ?? 0));
+                $valor = $movements->sum(fn ($m) => (float) $m->quantity * (float) ($m->product?->value ?? 0));
                 $name = $movements->first()->department?->name ?? 'Outros';
                 $byDept[] = ['department_id' => (int) $deptId, 'name' => $name, 'value' => round($valor, 2), 'color' => $this->departmentColor($name)];
             });
@@ -120,14 +120,14 @@ class DashboardController extends Controller
             ];
         }
 
-        $movements = AssetMovement::query()
-            ->with('asset:id,value')
+        $movements = StockMovement::query()
+            ->with('product:id,value')
             ->where('movement_date', '>=', now()->subMonths(6)->startOfMonth())
             ->get();
 
         foreach ($movements as $m) {
             $mes = $m->movement_date->format('Y-m');
-            $valor = (float) $m->quantity * (float) ($m->asset?->value ?? 0);
+            $valor = (float) $m->quantity * (float) ($m->product?->value ?? 0);
             $idx = array_search($mes, array_column($months, 'month'), true);
             if ($idx !== false) {
                 if ($m->type === 'entrada') {
@@ -143,7 +143,7 @@ class DashboardController extends Controller
 
     private function getRecentMovements(): array
     {
-        return AssetMovement::with(['asset:id,name,code', 'user:id,name', 'department:id,name'])
+        return StockMovement::with(['product:id,name,code', 'user:id,name', 'department:id,name'])
             ->orderByDesc('created_at')
             ->limit(10)
             ->get()
@@ -153,9 +153,9 @@ class DashboardController extends Controller
                 'type_label' => $m->type === 'entrada' ? 'Entrada' : 'Saída',
                 'quantity' => $m->quantity,
                 'movement_date' => $m->movement_date->format('Y-m-d'),
-                'asset_name' => $m->asset?->name,
-                'asset_code' => $m->asset?->code,
-                'asset_id' => $m->asset_id,
+                'product_name' => $m->product?->name,
+                'product_code' => $m->product?->code,
+                'product_id' => $m->product_id,
                 'user_name' => $m->user?->name,
                 'department_name' => $m->department?->name,
             ])
@@ -176,19 +176,19 @@ class DashboardController extends Controller
         }
         $start = now()->startOfMonth();
         $end = now()->endOfMonth();
-        $movements = AssetMovement::where('type', '!=', 'entrada')
+        $movements = StockMovement::where('type', '!=', 'entrada')
             ->where('department_id', $departmentId)
             ->whereBetween('movement_date', [$start, $end])
-            ->with(['asset:id,name,code,value', 'user:id,name'])
+            ->with(['product:id,name,code,value', 'user:id,name'])
             ->orderByDesc('movement_date')
             ->get();
         $items = $movements->map(fn ($m) => [
             'id' => $m->id,
-            'asset_name' => $m->asset?->name,
-            'asset_code' => $m->asset?->code,
+            'product_name' => $m->product?->name,
+            'product_code' => $m->product?->code,
             'quantity' => (int) $m->quantity,
-            'unit_value' => (float) ($m->asset?->value ?? 0),
-            'total_value' => round((float) $m->quantity * (float) ($m->asset?->value ?? 0), 2),
+            'unit_value' => (float) ($m->product?->value ?? 0),
+            'total_value' => round((float) $m->quantity * (float) ($m->product?->value ?? 0), 2),
             'movement_date' => $m->movement_date->format('Y-m-d'),
             'user_name' => $m->user?->name,
         ]);
@@ -200,7 +200,7 @@ class DashboardController extends Controller
         if (!$request->user()->can('read')) {
             return response()->json(['message' => 'Sem permissão.'], 403);
         }
-        $products = Asset::with(['category:id,name', 'department:id,name'])
+        $products = Product::with(['category:id,name', 'department:id,name'])
             ->whereRaw('quantity <= COALESCE(estoque_minimo, 0)')
             ->orderBy('name')
             ->get(['id', 'code', 'name', 'brand', 'quantity', 'estoque_minimo', 'value', 'category_id', 'department_id']);

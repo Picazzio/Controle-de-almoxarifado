@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\AssetMovement;
+use App\Models\StockMovement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
@@ -45,25 +45,28 @@ class ActivityLogController extends Controller
             'deleted' => 'Excluiu',
         ];
         $resourceMap = [
-            'App\Models\Asset' => 'Produto',
+            'App\Models\Product' => 'Produto',
             'App\Models\User' => 'Usuário',
-            'App\Models\AssetMovement' => 'Movimentação',
+            'App\Models\StockMovement' => 'Movimentação',
             'App\Models\Role' => 'Permissão',
+            // Legado (logs antigos)
+            'App\Models\Asset' => 'Produto',
+            'App\Models\AssetMovement' => 'Movimentação',
         ];
         $items = $logs->getCollection()->map(function ($log) use ($actionMap, $resourceMap) {
             $subject = $log->subject;
             $resourceName = $resourceMap[$log->subject_type] ?? class_basename($log->subject_type);
             $subjectName = 'N/A';
             if ($subject) {
-                if ($subject instanceof AssetMovement) {
-                    $subject->loadMissing(['asset', 'department']);
+                if ($subject instanceof StockMovement) {
+                    $subject->loadMissing(['product', 'department']);
                     $typeLabel = $subject->type === 'retirada' ? 'Retirada' : ($subject->type === 'entrada' ? 'Entrada' : $subject->type);
                     $subjectName = $subject->notes
                         ?: sprintf(
                             '%s · %d un. · %s%s',
                             $typeLabel,
                             $subject->quantity,
-                            $subject->asset?->name ?? 'Produto #' . $subject->asset_id,
+                            $subject->product?->name ?? 'Produto #' . $subject->product_id,
                             $subject->department ? ' → ' . $subject->department->name : ''
                         );
                 } elseif (is_object($subject) && isset($subject->name)) {

@@ -20,6 +20,16 @@ import {
   DialogTrigger,
 } from '../components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -32,6 +42,7 @@ import { Badge } from '../components/ui/badge';
 import { Avatar, AvatarFallback } from '../components/ui/avatar';
 import { Plus, Search, Edit, Trash2, Mail, Shield } from 'lucide-react';
 import { toast } from 'sonner';
+import PaginationBar from '../components/PaginationBar';
 
 /** Formulário de usuário: definido fora de Users para não ser recriado a cada render e evitar perda de foco nos inputs. */
 function UserForm({
@@ -114,18 +125,47 @@ function UserForm({
           </Select>
         </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="status">Status</Label>
-        <Select value={formData.status} onValueChange={(value) => onFieldChange('status', value)}>
-          <SelectTrigger data-testid="user-status-select">
-            <SelectValue placeholder="Selecione" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="active">Ativo</SelectItem>
-            <SelectItem value="inactive">Inativo</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {isEditing ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="new_password">Trocar senha</Label>
+            <Input
+              id="new_password"
+              name="password"
+              type="password"
+              value={formData.password}
+              onChange={onInputChange}
+              placeholder="Deixe em branco para manter"
+              autoComplete="new-password"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
+            <Select value={formData.status} onValueChange={(value) => onFieldChange('status', value)}>
+              <SelectTrigger data-testid="user-status-select">
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Ativo</SelectItem>
+                <SelectItem value="inactive">Inativo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Label htmlFor="status">Status</Label>
+          <Select value={formData.status} onValueChange={(value) => onFieldChange('status', value)}>
+            <SelectTrigger data-testid="user-status-select">
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Ativo</SelectItem>
+              <SelectItem value="inactive">Inativo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <Button type="submit" data-testid="user-form-submit-btn" className="w-full bg-gradient-to-r from-[#0c4a6e] to-[#1e40af]">
         {submitText}
@@ -146,6 +186,9 @@ const Users = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -154,15 +197,45 @@ const Users = () => {
     department_id: '',
     status: 'active'
   });
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    per_page: 15,
+    total: 0,
+  });
 
-  const loadUsers = useCallback(() => {
-    const params = { per_page: 200, sort_by: sortBy, sort_dir: sortDir };
+  const loadUsers = useCallback((page, perPage) => {
+    const params = { page, per_page: perPage, sort_by: sortBy, sort_dir: sortDir };
     if (searchTerm) params.search = searchTerm;
     if (filterRole !== 'all') params.role = filterRole;
     return api.get('/users', { params }).then((res) => {
       setUsers(res.data.data || []);
+      setPagination({
+        current_page: res.data.current_page ?? 1,
+        last_page: res.data.last_page ?? 1,
+        per_page: res.data.per_page ?? perPage,
+        total: res.data.total ?? 0,
+      });
     });
   }, [searchTerm, filterRole, sortBy, sortDir]);
+
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, current_page: 1 }));
+  }, [searchTerm, filterRole]);
+
+  useEffect(() => {
+    if (loading) return;
+    setLoading(true);
+    loadUsers(pagination.current_page, pagination.per_page).finally(() => setLoading(false));
+  }, [loading, pagination.current_page, pagination.per_page]);
+
+  const handlePageChange = (newPage) => {
+    setPagination((prev) => ({ ...prev, current_page: newPage }));
+  };
+
+  const handlePerPageChange = (newPerPage) => {
+    setPagination((prev) => ({ ...prev, per_page: newPerPage, current_page: 1 }));
+  };
 
   const handleSort = (column) => {
     if (sortBy === column) {
@@ -180,9 +253,6 @@ const Users = () => {
     ]).then(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    if (!loading) loadUsers();
-  }, [loading, loadUsers]);
 
   const handleInputChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -209,7 +279,7 @@ const Users = () => {
       .then(() => {
         setFormData({ name: '', email: '', password: '', role: 'Operador', department_id: '', status: 'active' });
         setIsAddDialogOpen(false);
-        loadUsers();
+        loadUsers(pagination.current_page, pagination.per_page);
         toast.success('Usuário cadastrado com sucesso!');
       })
       .catch((err) => toast.error(err.response?.data?.message || 'Erro ao cadastrar.'));
@@ -217,29 +287,52 @@ const Users = () => {
 
   const handleEditUser = (e) => {
     e.preventDefault();
-    api.put(`/users/${editingUser.id}`, {
+    const payload = {
       name: formData.name,
       email: formData.email,
       role: formData.role,
       department_id: formData.department_id || null,
       status: formData.status,
-    })
+    };
+    if (formData.password && formData.password.trim()) {
+      if (formData.password.length < 6) {
+        toast.error('A nova senha deve ter pelo menos 6 caracteres.');
+        return;
+      }
+      payload.password = formData.password;
+    }
+    api.put(`/users/${editingUser.id}`, payload)
       .then(() => {
         setIsEditDialogOpen(false);
         setEditingUser(null);
-        loadUsers();
+        loadUsers(pagination.current_page, pagination.per_page);
         toast.success('Usuário atualizado com sucesso!');
       })
       .catch((err) => toast.error(err.response?.data?.message || 'Erro ao atualizar.'));
   };
 
-  const handleDeleteUser = (id) => {
-    api.delete(`/users/${id}`)
+  const openDeleteDialog = (user) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!userToDelete) return;
+    setDeleting(true);
+    api.delete(`/users/${userToDelete.id}`)
       .then(() => {
-        setUsers((prev) => prev.filter((u) => u.id !== id));
+        setDeleteDialogOpen(false);
+        setUserToDelete(null);
+        const isLastOnPage = users.length === 1 && pagination.current_page > 1;
+        if (isLastOnPage) {
+          setPagination((prev) => ({ ...prev, current_page: prev.current_page - 1 }));
+        } else {
+          loadUsers(pagination.current_page, pagination.per_page);
+        }
         toast.success('Usuário removido com sucesso!');
       })
-      .catch((err) => toast.error(err.response?.data?.message || 'Erro ao remover.'));
+      .catch((err) => toast.error(err.response?.data?.message || 'Erro ao remover.'))
+      .finally(() => setDeleting(false));
   };
 
   const openEditDialog = (user) => {
@@ -247,6 +340,7 @@ const Users = () => {
     setFormData({
       name: user.name,
       email: user.email,
+      password: '',
       role: user.role,
       department_id: user.department_id ? String(user.department_id) : '',
       status: user.status === 'Ativo' ? 'active' : 'inactive'
@@ -342,11 +436,6 @@ const Users = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="mt-4">
-            <p className="text-sm text-muted-foreground">
-              Mostrando <span className="font-semibold">{filteredUsers.length}</span> de <span className="font-semibold">{users.length}</span> usuários
-            </p>
-          </div>
         </CardContent>
       </Card>
 
@@ -412,7 +501,7 @@ const Users = () => {
                         </Button>
                         <Button
                           data-testid={`delete-user-${user.id}`}
-                          onClick={() => handleDeleteUser(user.id)}
+                          onClick={() => openDeleteDialog(user)}
                           variant="ghost"
                           size="sm"
                           className="hover:bg-red-50 hover:text-red-600"
@@ -426,10 +515,36 @@ const Users = () => {
               </TableBody>
             </Table>
           </div>
+          <PaginationBar
+            pagination={pagination}
+            onPageChange={handlePageChange}
+            onPerPageChange={handlePerPageChange}
+            className="px-6 pb-4"
+          />
         </CardContent>
       </Card>
 
-      {/* Edit Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => { if (!open) setUserToDelete(null); setDeleteDialogOpen(open); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este usuário?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleConfirmDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>

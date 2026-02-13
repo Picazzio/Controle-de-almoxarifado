@@ -9,6 +9,7 @@ const RESTRICTED_PATHS_BY_PERMISSION = {
   '/users': 'manage_users',
   '/departments': 'manage_users',
   '/categories': 'manage_users',
+  '/patrimonio': 'manage_users',
   '/roles': 'manage_roles',
   '/logs': 'view_logs',
   '/solicitar-produtos': 'request_products',
@@ -54,6 +55,10 @@ export function canAccessDepartments(user) {
 }
 
 export function canAccessCategories(user) {
+  return hasPermission(user, 'manage_users');
+}
+
+export function canAccessPatrimonio(user) {
   return hasPermission(user, 'manage_users');
 }
 

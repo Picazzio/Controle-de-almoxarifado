@@ -14,6 +14,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from './ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 import { Badge } from './ui/badge';
 import { Plus, Shield, Edit, Trash2, Check, LayoutDashboard, Package, ClipboardList, Building2, FolderTree, Users, Inbox, Clock, Settings } from 'lucide-react';
 import { toast } from 'sonner';
@@ -157,6 +167,9 @@ const RolesManager = ({ embedded = false }) => {
     description: '',
     permissions: []
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [roleToDelete, setRoleToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadRoles = () => {
     api.get('/roles').then((res) => setRoles(res.data || []));
@@ -204,18 +217,27 @@ const RolesManager = ({ embedded = false }) => {
       .catch((err) => toast.error(err.response?.data?.message || 'Erro ao atualizar.'));
   };
 
-  const handleDeleteRole = (id) => {
-    const role = roles.find(r => r.id === id);
+  const openDeleteDialog = (role) => {
     if (role?.user_count > 0) {
       toast.error('Não é possível excluir uma função com usuários associados!');
       return;
     }
-    api.delete(`/roles/${id}`)
+    setRoleToDelete(role);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!roleToDelete) return;
+    setDeleting(true);
+    api.delete(`/roles/${roleToDelete.id}`)
       .then(() => {
-        setRoles((prev) => prev.filter((r) => r.id !== id));
+        setRoles((prev) => prev.filter((r) => r.id !== roleToDelete.id));
+        setDeleteDialogOpen(false);
+        setRoleToDelete(null);
         toast.success('Função removida com sucesso!');
       })
-      .catch((err) => toast.error(err.response?.data?.message || 'Erro ao remover.'));
+      .catch((err) => toast.error(err.response?.data?.message || 'Erro ao remover.'))
+      .finally(() => setDeleting(false));
   };
 
   const openEditDialog = (role) => {
@@ -296,7 +318,7 @@ const RolesManager = ({ embedded = false }) => {
                   </Button>
                   <Button
                     data-testid={`delete-role-${role.id}`}
-                    onClick={() => handleDeleteRole(role.id)}
+                    onClick={() => openDeleteDialog(role)}
                     variant="ghost"
                     size="sm"
                     className="hover:bg-red-50 hover:text-red-600"
@@ -349,6 +371,27 @@ const RolesManager = ({ embedded = false }) => {
           </Card>
         ))}
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => { if (!open) setRoleToDelete(null); setDeleteDialogOpen(open); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir função</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta função?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleConfirmDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-thin">

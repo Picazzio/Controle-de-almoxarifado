@@ -13,6 +13,16 @@ import {
   DialogTrigger,
 } from '../components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -34,6 +44,9 @@ const Departments = () => {
   const [formName, setFormName] = useState('');
   const [sortBy, setSortBy] = useState('name');
   const [sortDir, setSortDir] = useState('asc');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [departmentToDelete, setDepartmentToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadDepartments = useCallback(() => {
     const params = { sort_by: sortBy, sort_dir: sortDir };
@@ -92,13 +105,23 @@ const Departments = () => {
       .catch((err) => toast.error(err.response?.data?.message || 'Erro ao atualizar.'));
   };
 
-  const handleDelete = (id) => {
-    api.delete(`/departments/${id}`)
+  const openDeleteDialog = (dept) => {
+    setDepartmentToDelete(dept);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!departmentToDelete) return;
+    setDeleting(true);
+    api.delete(`/departments/${departmentToDelete.id}`)
       .then(() => {
-        setDepartments((prev) => prev.filter((d) => d.id !== id));
+        setDepartments((prev) => prev.filter((d) => d.id !== departmentToDelete.id));
+        setDeleteDialogOpen(false);
+        setDepartmentToDelete(null);
         toast.success('Departamento removido com sucesso!');
       })
-      .catch((err) => toast.error(err.response?.data?.message || 'Erro ao remover.'));
+      .catch((err) => toast.error(err.response?.data?.message || 'Erro ao remover.'))
+      .finally(() => setDeleting(false));
   };
 
   const openEditDialog = (dept) => {
@@ -201,7 +224,7 @@ const Departments = () => {
                           </Button>
                           <Button
                             data-testid={`delete-department-${dept.id}`}
-                            onClick={() => handleDelete(dept.id)}
+                            onClick={() => openDeleteDialog(dept)}
                             variant="ghost"
                             size="sm"
                             className="hover:bg-red-50 hover:text-red-600"
@@ -222,6 +245,27 @@ const Departments = () => {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => { if (!open) setDepartmentToDelete(null); setDeleteDialogOpen(open); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir departamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este departamento?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleConfirmDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-md">
