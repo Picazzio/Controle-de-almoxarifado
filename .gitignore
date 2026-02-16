@@ -78,7 +78,10 @@ agenthub/agents/youtube/db
 
 # Mobile development
 android-sdk/ -e 
-# Environment files
+# Environment files (mantém .env e variantes fora do repo)
 *.env
 *.env.*
+# Permite .env.example para documentação no GitHub
+!.env.example
+!**/.env.example
 frontend/node_modules/.cache/default-development/0.pack
