@@ -308,10 +308,9 @@ const Products = () => {
   }, [searchTerm, filterCategory]);
 
   useEffect(() => {
-    if (loading) return;
     setLoading(true);
     loadProducts(pagination.current_page, pagination.per_page).finally(() => setLoading(false));
-  }, [loading, pagination.current_page, pagination.per_page]);
+  }, [loadProducts, pagination.current_page, pagination.per_page]);
 
   const handlePageChange = (newPage) => {
     setPagination((prev) => ({ ...prev, current_page: newPage }));
@@ -341,15 +340,15 @@ const Products = () => {
     ]).finally(() => setLoading(false));
   }, []);
 
+  const refetchProducts = useCallback(() => {
+    loadProducts(pagination.current_page, pagination.per_page);
+  }, [loadProducts, pagination.current_page, pagination.per_page]);
+
   useEffect(() => {
     const onRefocus = () => refetchProducts();
     window.addEventListener('app:refocus', onRefocus);
     return () => window.removeEventListener('app:refocus', onRefocus);
-  }, [loadProducts, pagination.current_page, pagination.per_page]);
-
-  const refetchProducts = () => {
-    loadProducts(pagination.current_page, pagination.per_page);
-  };
+  }, [refetchProducts]);
 
   const handleAddProduct = (e) => {
     e.preventDefault();

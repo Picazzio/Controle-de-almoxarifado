@@ -56,7 +56,7 @@ const Layout = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
     fetchNotifications();
     const interval = setInterval(() => fetchNotifications({ silent: true }), 25 * 1000);
     const onVisibilityChange = () => {
@@ -70,7 +70,7 @@ const Layout = ({ children }) => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [user, fetchNotifications]);
+  }, [user?.id, fetchNotifications]);
 
   const handleNotificationOpen = (open) => {
     setNotificationsOpen(open);

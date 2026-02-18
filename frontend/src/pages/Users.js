@@ -224,10 +224,9 @@ const Users = () => {
   }, [searchTerm, filterRole]);
 
   useEffect(() => {
-    if (loading) return;
     setLoading(true);
     loadUsers(pagination.current_page, pagination.per_page).finally(() => setLoading(false));
-  }, [loading, pagination.current_page, pagination.per_page]);
+  }, [loadUsers, pagination.current_page, pagination.per_page]);
 
   const handlePageChange = (newPage) => {
     setPagination((prev) => ({ ...prev, current_page: newPage }));

@@ -106,13 +106,7 @@ const Dashboard = () => {
     return () => window.removeEventListener('app:refocus', onRefocus);
   }, [loadDashboardStats]);
 
-  useEffect(() => {
-    const onRefocus = () => loadPendingRequests();
-    window.addEventListener('app:refocus', onRefocus);
-    return () => window.removeEventListener('app:refocus', onRefocus);
-  }, [canViewSolicitations]);
-
-  const loadPendingRequests = () => {
+  const loadPendingRequests = useCallback(() => {
     if (!canViewSolicitations) return;
     api.get('/stock-requests', { params: { all: 1, per_page: 20 } })
       .then((res) => {
@@ -120,11 +114,17 @@ const Dashboard = () => {
         setPendingRequests(list.filter((r) => r.status === 'pendente'));
       })
       .catch(() => setPendingRequests([]));
-  };
+  }, [canViewSolicitations]);
+
+  useEffect(() => {
+    const onRefocus = () => loadPendingRequests();
+    window.addEventListener('app:refocus', onRefocus);
+    return () => window.removeEventListener('app:refocus', onRefocus);
+  }, [loadPendingRequests]);
 
   useEffect(() => {
     loadPendingRequests();
-  }, [canViewSolicitations]);
+  }, [loadPendingRequests]);
 
   const canFulfill = hasPermission(user, 'update');
 

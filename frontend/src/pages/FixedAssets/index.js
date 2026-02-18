@@ -108,7 +108,7 @@ const FixedAssetsIndex = () => {
         }
       })
       .finally(() => setLoading(false));
-  }, [pagination.current_page, pagination.per_page]);
+  }, [loadAssets, pagination.current_page, pagination.per_page]);
 
   const handlePageChange = (newPage) => {
     setPagination((prev) => ({ ...prev, current_page: newPage }));

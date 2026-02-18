@@ -61,7 +61,7 @@ const Logs = () => {
 
   useEffect(() => {
     loadLogs(pagination.current_page, pagination.per_page);
-  }, [pagination.current_page, pagination.per_page]);
+  }, [loadLogs, pagination.current_page, pagination.per_page]);
 
   const handlePageChange = (newPage) => {
     setPagination((prev) => ({ ...prev, current_page: newPage }));
@@ -79,10 +79,6 @@ const Logs = () => {
       setSortDir(column === 'created_at' ? 'desc' : 'asc');
     }
   };
-
-  useEffect(() => {
-    loadLogs();
-  }, [loadLogs]);
 
   const actionTypes = [
     { value: 'created', label: 'Criação' },

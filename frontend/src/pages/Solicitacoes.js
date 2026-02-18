@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { canViewStockRequests } from '../lib/permissions';
@@ -60,22 +60,23 @@ const Solicitações = () => {
     total: 0,
   });
 
-  const loadRequests = (page = 1, perPage = pagination.per_page) => {
+  const loadRequests = useCallback((page, perPage) => {
     setLoading(true);
     const params = canViewAll ? { all: 1, page, per_page: perPage } : { page, per_page: perPage };
     api.get('/stock-requests', { params })
       .then((res) => {
         setRequests(res.data?.data ?? []);
-        setPagination({
+        setPagination((prev) => ({
+          ...prev,
           current_page: res.data?.current_page ?? 1,
           last_page: res.data?.last_page ?? 1,
           per_page: res.data?.per_page ?? perPage,
           total: res.data?.total ?? 0,
-        });
+        }));
       })
       .catch(() => toast.error('Erro ao carregar solicitações'))
       .finally(() => setLoading(false));
-  };
+  }, [canViewAll]);
 
   useEffect(() => {
     setPagination((prev) => ({ ...prev, current_page: 1 }));
@@ -83,13 +84,13 @@ const Solicitações = () => {
 
   useEffect(() => {
     loadRequests(pagination.current_page, pagination.per_page);
-  }, [canViewAll, pagination.current_page, pagination.per_page]);
+  }, [loadRequests, pagination.current_page, pagination.per_page]);
 
   useEffect(() => {
     const onRefocus = () => loadRequests(pagination.current_page, pagination.per_page);
     window.addEventListener('app:refocus', onRefocus);
     return () => window.removeEventListener('app:refocus', onRefocus);
-  }, [canViewAll, pagination.current_page, pagination.per_page]);
+  }, [loadRequests, pagination.current_page, pagination.per_page]);
 
   const handlePageChange = (newPage) => {
     setPagination((prev) => ({ ...prev, current_page: newPage }));
