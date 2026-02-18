@@ -12,7 +12,7 @@ import SolicitarProdutos from './pages/SolicitarProdutos';
 import Solicitacoes from './pages/Solicitacoes';
 import Departments from './pages/Departments';
 import Categories from './pages/Categories';
-import FixedAssetsIndex from './pages/FixedAssets/Index';
+import FixedAssetsIndex from './pages/FixedAssets/index';
 import Users from './pages/Users';
 import Roles from './pages/Roles';
 import Logs from './pages/Logs';
