@@ -99,27 +99,28 @@ const SolicitarProdutos = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
+    <div className="flex flex-col h-full min-h-0 animate-fade-in">
+      {/* Título fixo na página */}
+      <div className="flex-shrink-0 pb-4">
         <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
           <Package className="w-8 h-8 text-[#0c4a6e]" />
           Solicitar Produtos
         </h1>
         <p className="text-muted-foreground mt-1">
-          Consulte os itens disponíveis em estoque e envie sua solicitação ao responsável pelo almoxarifado.
+          {/* Consulte os itens disponíveis em estoque e envie sua solicitação ao responsável pelo almoxarifado. */}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Catálogo */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card className="border-border">
-            <CardHeader className="pb-3">
+      {/* Grid dos cards — ocupa o resto da altura, sem gerar scroll na página */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
+        {/* Card Produtos disponíveis */}
+        <div className="lg:col-span-2 flex flex-col min-h-0">
+          <Card className="border-border flex flex-col min-h-0">
+            <CardHeader className="pb-3 flex-shrink-0">
               <CardTitle className="text-lg">Produtos disponíveis</CardTitle>
-              <CardDescription>Itens em estoque com quantidade maior que zero</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <form onSubmit={handleSearch} className="flex gap-2">
+            <CardContent className="flex-1 min-h-0 overflow-hidden flex flex-col space-y-4">
+              <form onSubmit={handleSearch} className="flex gap-2 flex-shrink-0">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -133,90 +134,92 @@ const SolicitarProdutos = () => {
               </form>
 
               {loading ? (
-                <div className="py-12 text-center text-muted-foreground">Carregando...</div>
+                <div className="py-12 text-center text-muted-foreground flex-shrink-0">Carregando...</div>
               ) : products.length === 0 ? (
-                <p className="py-8 text-center text-muted-foreground">Nenhum produto disponível no momento.</p>
+                <p className="py-8 text-center text-muted-foreground flex-shrink-0">Nenhum produto disponível no momento.</p>
               ) : (
-                <div className="border border-border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="font-semibold">Código</TableHead>
-                        <TableHead className="font-semibold">Nome</TableHead>
-                        <TableHead className="font-semibold">Categoria</TableHead>
-                        <TableHead className="font-semibold text-right">Qtd.</TableHead>
-                        <TableHead className="font-semibold text-right">Valor unit.</TableHead>
-                        <TableHead className="text-right w-24">Ação</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {products.map((p) => (
-                        <TableRow key={p.id} className="hover:bg-muted/30">
-                          <TableCell className="font-mono text-muted-foreground">{p.code ?? '-'}</TableCell>
-                          <TableCell className="font-medium">{p.name}</TableCell>
-                          <TableCell className="text-muted-foreground">{p.category ?? '-'}</TableCell>
-                          <TableCell className="text-right">{p.quantity ?? 0}</TableCell>
-                          <TableCell className="text-right">
-                            R$ {Number(p.value ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => addToCart(p)}
-                              className="gap-1"
-                            >
-                              <Plus className="w-4 h-4" />
-                              Solicitar
-                            </Button>
-                          </TableCell>
+                <>
+                  <div className="flex-1 min-h-0 overflow-y-auto border border-border rounded-lg scrollbar-thin">
+                    <Table className="!overflow-visible">
+                      <TableHeader>
+                        <TableRow className="bg-muted/50 sticky top-0 z-10 [&_th]:bg-muted/50 [&_th]:shadow-[0_1px_0_0_hsl(var(--border))]">
+                          <TableHead className="font-semibold">Código</TableHead>
+                          <TableHead className="font-semibold">Nome</TableHead>
+                          <TableHead className="font-semibold">Categoria</TableHead>
+                          <TableHead className="font-semibold text-right">Qtd.</TableHead>
+                          <TableHead className="font-semibold text-right">Valor unit.</TableHead>
+                          <TableHead className="text-right w-24">Ação</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-              {pagination.last_page > 1 && (
-                <div className="flex justify-center gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={pagination.current_page <= 1}
-                    onClick={() => loadCatalog(pagination.current_page - 1)}
-                  >
-                    Anterior
-                  </Button>
-                  <span className="flex items-center px-2 text-sm text-muted-foreground">
-                    Página {pagination.current_page} de {pagination.last_page}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={pagination.current_page >= pagination.last_page}
-                    onClick={() => loadCatalog(pagination.current_page + 1)}
-                  >
-                    Próxima
-                  </Button>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {products.map((p) => (
+                          <TableRow key={p.id} className="hover:bg-muted/30">
+                            <TableCell className="font-mono text-muted-foreground">{p.code ?? '-'}</TableCell>
+                            <TableCell className="font-medium">{p.name}</TableCell>
+                            <TableCell className="text-muted-foreground">{p.category ?? '-'}</TableCell>
+                            <TableCell className="text-right">{p.quantity ?? 0}</TableCell>
+                            <TableCell className="text-right">
+                              R$ {Number(p.value ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => addToCart(p)}
+                                className="gap-1"
+                              >
+                                <Plus className="w-4 h-4" />
+                                {/* Solicitar */}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {pagination.last_page > 1 && (
+                    <div className="flex justify-center gap-2 pt-2 flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.current_page <= 1}
+                        onClick={() => loadCatalog(pagination.current_page - 1)}
+                      >
+                        Anterior
+                      </Button>
+                      <span className="flex items-center px-2 text-sm text-muted-foreground">
+                        Página {pagination.current_page} de {pagination.last_page}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.current_page >= pagination.last_page}
+                        onClick={() => loadCatalog(pagination.current_page + 1)}
+                      >
+                        Próxima
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Sua solicitação */}
-        <div className="lg:col-span-1">
-          <Card className="border-border sticky top-24">
-            <CardHeader className="pb-2">
+        {/* Card Sua solicitação */}
+        <div className="lg:col-span-1 flex flex-col min-h-0">
+          <Card className="border-border flex flex-col min-h-0">
+            <CardHeader className="pb-2 flex-shrink-0">
               <CardTitle className="text-lg">Sua solicitação</CardTitle>
               <CardDescription>Itens que serão enviados ao almoxarifado</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="flex-1 min-h-0 overflow-hidden flex flex-col space-y-4">
               {cart.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4">Nenhum item adicionado. Use &quot;Solicitar&quot; nos produtos acima.</p>
+                <p className="text-sm text-muted-foreground py-4 flex-shrink-0">Nenhum item adicionado. Use &quot;Solicitar&quot; nos produtos acima.</p>
               ) : (
                 <>
-                  <ul className="space-y-2 max-h-48 overflow-y-auto">
+                  <ul className="space-y-2 flex-1 min-h-0 overflow-y-auto scrollbar-thin">
                     {cart.map((c) => (
                       <li key={c.product_id} className="flex items-center justify-between gap-2 py-2 border-b border-border last:border-0">
                         <div className="min-w-0 flex-1">
@@ -244,7 +247,7 @@ const SolicitarProdutos = () => {
                       </li>
                     ))}
                   </ul>
-                  <div className="space-y-2">
+                  <div className="space-y-2 flex-shrink-0">
                     <Label htmlFor="notes">Observações (opcional)</Label>
                     <Textarea
                       id="notes"
@@ -256,7 +259,7 @@ const SolicitarProdutos = () => {
                     />
                   </div>
                   <Button
-                    className="w-full gap-2 bg-gradient-to-r from-[#0c4a6e] to-[#1e40af]"
+                    className="w-full gap-2 bg-gradient-to-r from-[#0c4a6e] to-[#1e40af] flex-shrink-0"
                     onClick={submitRequest}
                     disabled={submitting}
                   >

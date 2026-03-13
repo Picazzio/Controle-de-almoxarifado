@@ -23,11 +23,9 @@ import {
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
-  TableHeader,
   TableRow,
 } from '../components/ui/table';
 import { SortableTableHead } from '../components/ui/sortable-table-head';
@@ -131,51 +129,18 @@ const Categories = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <FolderTree className="w-8 h-8 text-[#0c4a6e]" />
-            Categorias
-          </h1>
-          <p className="text-muted-foreground mt-1">Cadastro das categorias de produtos</p>
-        </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="add-category-btn" className="flex items-center gap-2 bg-gradient-to-r from-[#0c4a6e] to-[#1e40af]">
-              <Plus className="w-4 h-4" />
-              Cadastrar categoria
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Nova categoria</DialogTitle>
-              <DialogDescription>Informe o nome da categoria</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAdd} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="category-name">Nome da categoria</Label>
-                <Input
-                  id="category-name"
-                  data-testid="category-name-input"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Ex: Material de escritório, TI, Limpeza"
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full bg-gradient-to-r from-[#0c4a6e] to-[#1e40af]">
-                Cadastrar
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+    <div className="flex flex-col gap-6 animate-fade-in min-h-0" style={{ height: 'calc(100vh - 220px)' }}>
+      <div>
+        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+          <FolderTree className="w-8 h-8 text-[#0c4a6e]" />
+          Categorias
+        </h1>
       </div>
 
-      <Card className="border-border">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4 mb-4">
-            <div className="relative flex-1">
+      <Card className="border-border flex-1 flex flex-col min-h-0">
+        <CardContent className="p-6 flex-1 flex flex-col min-h-0 gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 flex-shrink-0 items-center">
+            <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 data-testid="search-categories-input"
@@ -185,61 +150,78 @@ const Categories = () => {
                 className="pl-10"
               />
             </div>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button data-testid="add-category-btn" size="icon" className="h-9 w-9 bg-gradient-to-r from-[#0c4a6e] to-[#1e40af] hover:opacity-90 shrink-0" aria-label="Cadastrar categoria">
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Nova categoria</DialogTitle>
+                  <DialogDescription>Informe o nome da categoria</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAdd} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="category-name">Nome da categoria</Label>
+                    <Input
+                      id="category-name"
+                      data-testid="category-name-input"
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
+                      placeholder="Ex: Material de escritório, TI, Limpeza"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full bg-gradient-to-r from-[#0c4a6e] to-[#1e40af]">
+                    Cadastrar
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Mostrando <span className="font-semibold">{categories.length}</span> categorias
-          </p>
 
           {loading ? (
-            <p className="text-muted-foreground">Carregando...</p>
+            <p className="text-muted-foreground flex-shrink-0">Carregando...</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <SortableTableHead columnKey="name" label="Nome" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                    <SortableTableHead columnKey="created_at" label="Data de cadastro" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                    <TableHead className="font-semibold text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {categories.map((cat) => (
-                    <TableRow key={cat.id} data-testid={`category-row-${cat.id}`} className="hover:bg-muted/50">
-                      <TableCell className="font-medium">{cat.name}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {cat.created_at ? new Date(cat.created_at).toLocaleDateString('pt-BR') : '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            data-testid={`edit-category-${cat.id}`}
-                            onClick={() => openEditDialog(cat)}
-                            variant="ghost"
-                            size="sm"
-                            className="hover:bg-blue-50 hover:text-[#1e40af]"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            data-testid={`delete-category-${cat.id}`}
-                            onClick={() => openDeleteDialog(cat)}
-                            variant="ghost"
-                            size="sm"
-                            className="hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-
-          {!loading && categories.length === 0 && (
-            <p className="text-center text-muted-foreground py-8">Nenhuma categoria cadastrada.</p>
+            <>
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto scrollbar-table border border-border rounded-md" aria-label="Tabela de categorias com rolagem">
+                <div className="min-w-0">
+                  <table className="w-full caption-bottom text-sm border-collapse">
+                    <thead className="[&_tr]:border-b">
+                      <TableRow className="sticky top-0 z-20 border-b border-border bg-background shadow-[0_1px_0_0_hsl(var(--border))] hover:bg-background [&_th]:bg-background [&_th]:shadow-[0_1px_0_0_hsl(var(--border))]">
+                        <SortableTableHead columnKey="name" label="Nome" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} className="h-10 px-2 bg-background first:rounded-tl-md" />
+                        <SortableTableHead columnKey="created_at" label="Data de cadastro" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} className="h-10 px-2 bg-background" />
+                        <TableHead className="font-semibold text-right h-10 px-2 bg-background last:rounded-tr-md">Ações</TableHead>
+                      </TableRow>
+                    </thead>
+                    <TableBody>
+                      {categories.map((cat) => (
+                        <TableRow key={cat.id} data-testid={`category-row-${cat.id}`} className="hover:bg-muted/50">
+                          <TableCell className="font-medium">{cat.name}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {cat.created_at ? new Date(cat.created_at).toLocaleDateString('pt-BR') : '-'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button data-testid={`edit-category-${cat.id}`} onClick={() => openEditDialog(cat)} variant="ghost" size="sm" className="hover:bg-blue-50 hover:text-[#1e40af]">
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button data-testid={`delete-category-${cat.id}`} onClick={() => openDeleteDialog(cat)} variant="ghost" size="sm" className="hover:bg-red-50 hover:text-red-600">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </table>
+                </div>
+              </div>
+              {categories.length === 0 && (
+                <p className="text-center text-muted-foreground py-8 flex-shrink-0">Nenhuma categoria cadastrada.</p>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

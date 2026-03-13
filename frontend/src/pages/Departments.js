@@ -23,11 +23,9 @@ import {
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
-  TableHeader,
   TableRow,
 } from '../components/ui/table';
 import { SortableTableHead } from '../components/ui/sortable-table-head';
@@ -131,51 +129,18 @@ const Departments = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Building2 className="w-8 h-8 text-[#0c4a6e]" />
-            Departamentos
-          </h1>
-          <p className="text-muted-foreground mt-1">Cadastro dos departamentos da empresa</p>
-        </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="add-department-btn" className="flex items-center gap-2 bg-gradient-to-r from-[#0c4a6e] to-[#1e40af]">
-              <Plus className="w-4 h-4" />
-              Cadastrar departamento
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Novo departamento</DialogTitle>
-              <DialogDescription>Informe o nome do departamento da empresa</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAdd} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="department-name">Nome do departamento</Label>
-                <Input
-                  id="department-name"
-                  data-testid="department-name-input"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Ex: TI, RH, Financeiro"
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full bg-gradient-to-r from-[#0c4a6e] to-[#1e40af]">
-                Cadastrar
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+    <div className="flex flex-col gap-6 animate-fade-in min-h-0" style={{ height: 'calc(100vh - 220px)' }}>
+      <div>
+        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+          <Building2 className="w-8 h-8 text-[#0c4a6e]" />
+          Departamentos
+        </h1>
       </div>
 
-      <Card className="border-border">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4 mb-4">
-            <div className="relative flex-1">
+      <Card className="border-border flex-1 flex flex-col min-h-0">
+        <CardContent className="p-6 flex-1 flex flex-col min-h-0 gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 flex-shrink-0 items-center">
+            <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 data-testid="search-departments-input"
@@ -185,63 +150,80 @@ const Departments = () => {
                 className="pl-10"
               />
             </div>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button data-testid="add-department-btn" size="icon" className="h-9 w-9 bg-gradient-to-r from-[#0c4a6e] to-[#1e40af] hover:opacity-90 shrink-0" aria-label="Cadastrar departamento">
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Novo departamento</DialogTitle>
+                  <DialogDescription>Informe o nome do departamento da empresa</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAdd} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="department-name">Nome do departamento</Label>
+                    <Input
+                      id="department-name"
+                      data-testid="department-name-input"
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
+                      placeholder="Ex: TI, RH, Financeiro"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full bg-gradient-to-r from-[#0c4a6e] to-[#1e40af]">
+                    Cadastrar
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Mostrando <span className="font-semibold">{departments.length}</span> departamentos
-          </p>
 
           {loading ? (
-            <p className="text-muted-foreground">Carregando...</p>
+            <p className="text-muted-foreground flex-shrink-0">Carregando...</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <SortableTableHead columnKey="code" label="Código" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                    <SortableTableHead columnKey="name" label="Nome" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                    <SortableTableHead columnKey="created_at" label="Data de cadastro" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                    <TableHead className="font-semibold text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {departments.map((dept) => (
-                    <TableRow key={dept.id} data-testid={`department-row-${dept.id}`} className="hover:bg-muted/50">
-                      <TableCell className="font-mono text-muted-foreground">{dept.code ?? '-'}</TableCell>
-                      <TableCell className="font-medium">{dept.name}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {dept.created_at ? new Date(dept.created_at).toLocaleDateString('pt-BR') : '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            data-testid={`edit-department-${dept.id}`}
-                            onClick={() => openEditDialog(dept)}
-                            variant="ghost"
-                            size="sm"
-                            className="hover:bg-blue-50 hover:text-[#1e40af]"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            data-testid={`delete-department-${dept.id}`}
-                            onClick={() => openDeleteDialog(dept)}
-                            variant="ghost"
-                            size="sm"
-                            className="hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-
-          {!loading && departments.length === 0 && (
-            <p className="text-center text-muted-foreground py-8">Nenhum departamento cadastrado.</p>
+            <>
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto scrollbar-table border border-border rounded-md" aria-label="Tabela de departamentos com rolagem">
+                <div className="min-w-0">
+                  <table className="w-full caption-bottom text-sm border-collapse">
+                    <thead className="[&_tr]:border-b">
+                      <TableRow className="sticky top-0 z-20 border-b border-border bg-background shadow-[0_1px_0_0_hsl(var(--border))] hover:bg-background [&_th]:bg-background [&_th]:shadow-[0_1px_0_0_hsl(var(--border))]">
+                        <SortableTableHead columnKey="code" label="Código" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} className="h-10 px-2 bg-background first:rounded-tl-md" />
+                        <SortableTableHead columnKey="name" label="Nome" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} className="h-10 px-2 bg-background" />
+                        <SortableTableHead columnKey="created_at" label="Data de cadastro" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} className="h-10 px-2 bg-background" />
+                        <TableHead className="font-semibold text-right h-10 px-2 bg-background last:rounded-tr-md">Ações</TableHead>
+                      </TableRow>
+                    </thead>
+                    <TableBody>
+                      {departments.map((dept) => (
+                        <TableRow key={dept.id} data-testid={`department-row-${dept.id}`} className="hover:bg-muted/50">
+                          <TableCell className="font-mono text-muted-foreground">{dept.code ?? '-'}</TableCell>
+                          <TableCell className="font-medium">{dept.name}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {dept.created_at ? new Date(dept.created_at).toLocaleDateString('pt-BR') : '-'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button data-testid={`edit-department-${dept.id}`} onClick={() => openEditDialog(dept)} variant="ghost" size="sm" className="hover:bg-blue-50 hover:text-[#1e40af]">
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button data-testid={`delete-department-${dept.id}`} onClick={() => openDeleteDialog(dept)} variant="ghost" size="sm" className="hover:bg-red-50 hover:text-red-600">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </table>
+                </div>
+              </div>
+              {departments.length === 0 && (
+                <p className="text-center text-muted-foreground py-8 flex-shrink-0">Nenhum departamento cadastrado.</p>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

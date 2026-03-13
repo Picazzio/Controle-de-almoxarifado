@@ -30,7 +30,7 @@ import {
   TableRow,
 } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Search, Edit, Trash2, Tag, Upload } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Tag, Upload, Download, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import PaginationBar from '../../components/PaginationBar';
 import FixedAssetForm, { STATUS_OPTIONS } from './FixedAssetForm';
@@ -70,6 +70,7 @@ const FixedAssetsIndex = () => {
   const [assetToDelete, setAssetToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const fileInputRef = useRef(null);
   const [pagination, setPagination] = useState({
     current_page: 1,
@@ -246,8 +247,25 @@ const FixedAssetsIndex = () => {
       .finally(() => setDeleting(false));
   };
 
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
+  const handleImportModalOpen = () => setIsImportModalOpen(true);
+
+  const handleDownloadTemplate = () => {
+    const headers = ['etiqueta', 'nome', 'ns', 'marca', 'categoria', 'departamento', 'status', 'data_aquisicao', 'valor', 'descricao', 'nota_fiscal'];
+    const example = ['00001', 'Notebook Dell', 'SN123', 'Dell', 'Informática', 'TI', 'ativo', '2024-01-15', '3500.00', 'Notebook i5', ''];
+    const csv = ['\ufeff' + headers.join(';'), example.join(';')].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'modelo-importacao-patrimonio.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Modelo baixado.');
+  };
+
+  const handleSelectFileFromModal = () => {
+    setIsImportModalOpen(false);
+    setTimeout(() => fileInputRef.current?.click(), 150);
   };
 
   const handleFileChange = (e) => {
@@ -294,61 +312,71 @@ const FixedAssetsIndex = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Tag className="w-8 h-8 text-[#0c4a6e]" />
-            Patrimônio
-          </h1>
-          <p className="text-muted-foreground mt-1">Ativos imobilizados (etiquetas)</p>
-        </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".xlsx,.csv"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          className="flex items-center gap-2"
-          onClick={handleImportClick}
-          disabled={importing}
-        >
-          <Upload className="w-4 h-4" />
-          {importing ? 'Importando...' : 'Importar'}
-        </Button>
-        <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setIsAddDialogOpen(open); if (!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2 bg-gradient-to-r from-[#0c4a6e] to-[#1e40af]">
-              <Plus className="w-4 h-4" />
-              Cadastrar patrimônio
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Novo patrimônio</DialogTitle>
-              <DialogDescription>Preencha os dados do ativo imobilizado</DialogDescription>
-            </DialogHeader>
-            <FixedAssetForm
-              formData={formData}
-              onInputChange={handleInputChange}
-              onFieldChange={handleFieldChange}
-              categories={categories}
-              departments={departments}
-              onSubmit={handleAdd}
-              submitText="Cadastrar"
-            />
-          </DialogContent>
-        </Dialog>
+    <div className="flex flex-col gap-6 animate-fade-in min-h-0" style={{ height: 'calc(100vh - 220px)' }}>
+      <div>
+        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+          <Tag className="w-8 h-8 text-[#0c4a6e]" />
+          Patrimônio
+        </h1>
       </div>
 
-      <Card className="border-border">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4 mb-4">
-            <div className="relative flex-1">
+      {/* Modal de importação: modelo + instruções */}
+      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5 text-[#0c4a6e]" />
+              Importar patrimônio
+            </DialogTitle>
+            <DialogDescription>
+              Use uma planilha no formato indicado para importar vários itens de uma vez.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-foreground mb-2">Baixar modelo</p>
+              <p className="text-sm text-muted-foreground mb-2">
+                Baixe o arquivo modelo (CSV) com os cabeçalhos corretos e preencha com os dados. Você também pode usar arquivo Excel (.xlsx).
+              </p>
+              <Button type="button" variant="outline" className="gap-2" onClick={handleDownloadTemplate}>
+                <Download className="w-4 h-4" />
+                Baixar modelo da planilha
+              </Button>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground mb-2">Instruções</p>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <li><strong>Etiqueta</strong> e <strong>Nome</strong> são obrigatórios.</li>
+                <li>Colunas: etiqueta, nome, ns, marca, categoria, departamento, status, data_aquisicao, valor, descricao, nota_fiscal.</li>
+                <li>Status aceitos: ativo, manutencao, baixado, reservado.</li>
+                <li>Data no formato AAAA-MM-DD (ex.: 2024-01-15).</li>
+                <li>A primeira linha deve conter os cabeçalhos; não deixe linhas em branco no início.</li>
+              </ul>
+            </div>
+            <div className="pt-2 flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsImportModalOpen(false)}>
+                Fechar
+              </Button>
+              <Button type="button" className="gap-2 bg-gradient-to-r from-[#0c4a6e] to-[#1e40af]" onClick={handleSelectFileFromModal}>
+                <Upload className="w-4 h-4" />
+                Selecionar arquivo
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.csv"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      <Card className="border-border flex-1 flex flex-col min-h-0">
+        <CardContent className="p-6 flex-1 flex flex-col min-h-0 gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 flex-shrink-0 items-center">
+            <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 placeholder="Buscar por etiqueta ou nome..."
@@ -357,70 +385,119 @@ const FixedAssetsIndex = () => {
                 className="pl-10"
               />
             </div>
-          </div>
-          {loading ? (
-            <p className="text-muted-foreground">Carregando...</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">Etiqueta</TableHead>
-                    <TableHead className="font-semibold">Nome</TableHead>
-                    <TableHead className="font-semibold">N/S</TableHead>
-                    <TableHead className="font-semibold">Localização</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
-                    <TableHead className="font-semibold text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {assets.map((asset) => (
-                    <TableRow key={asset.id} className="hover:bg-muted/50">
-                      <TableCell className="font-mono font-medium">{asset.patrimony_code ?? '-'}</TableCell>
-                      <TableCell>{asset.name ?? '-'}</TableCell>
-                      <TableCell className="font-mono text-muted-foreground text-sm">{asset.serial_number ?? '-'}</TableCell>
-                      <TableCell>{asset.department ?? '-'}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={STATUS_COLORS[asset.status] ?? ''}>
-                          {STATUS_LABELS[asset.status] ?? asset.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            onClick={() => openEditDialog(asset)}
-                            variant="ghost"
-                            size="sm"
-                            className="hover:bg-blue-50 hover:text-[#1e40af]"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            onClick={() => openDeleteDialog(asset)}
-                            variant="ghost"
-                            size="sm"
-                            className="hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="flex items-center gap-2 shrink-0">
+              <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setIsAddDialogOpen(open); if (!open) resetForm(); }}>
+                <DialogTrigger asChild>
+                  <Button
+                    size="icon"
+                    className="h-9 w-9 bg-gradient-to-r from-[#0c4a6e] to-[#1e40af] hover:opacity-90"
+                    aria-label="Cadastrar patrimônio"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Novo patrimônio</DialogTitle>
+                    <DialogDescription>Preencha os dados do ativo</DialogDescription>
+                  </DialogHeader>
+                  <FixedAssetForm
+                    formData={formData}
+                    onInputChange={handleInputChange}
+                    onFieldChange={handleFieldChange}
+                    categories={categories}
+                    departments={departments}
+                    onSubmit={handleAdd}
+                    submitText="Cadastrar"
+                  />
+                </DialogContent>
+              </Dialog>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9"
+                onClick={handleImportModalOpen}
+                disabled={importing}
+                aria-label={importing ? 'Importando...' : 'Importar'}
+              >
+                <Upload className="w-4 h-4" />
+              </Button>
             </div>
+          </div>
+
+          {loading ? (
+            <p className="text-muted-foreground flex-shrink-0">Carregando...</p>
+          ) : (
+            <>
+              <div
+                className="flex-1 min-h-0 overflow-y-auto overflow-x-auto scrollbar-table border border-border rounded-md"
+                aria-label="Tabela de patrimônio com rolagem"
+              >
+                <div className="min-w-0">
+                  <table className="w-full caption-bottom text-sm border-collapse">
+                    <thead className="[&_tr]:border-b">
+                      <TableRow className="sticky top-0 z-20 border-b border-border bg-background shadow-[0_1px_0_0_hsl(var(--border))] hover:bg-background [&_th]:bg-background [&_th]:shadow-[0_1px_0_0_hsl(var(--border))]">
+                        <TableHead className="font-semibold h-10 px-2 bg-background first:rounded-tl-md">Etiqueta</TableHead>
+                        <TableHead className="font-semibold h-10 px-2 bg-background">Nome</TableHead>
+                        <TableHead className="font-semibold h-10 px-2 bg-background">N/S</TableHead>
+                        <TableHead className="font-semibold h-10 px-2 bg-background">Localização</TableHead>
+                        <TableHead className="font-semibold h-10 px-2 bg-background">Status</TableHead>
+                        <TableHead className="font-semibold text-right h-10 px-2 bg-background last:rounded-tr-md">Ações</TableHead>
+                      </TableRow>
+                    </thead>
+                  <TableBody>
+                    {assets.map((asset) => (
+                      <TableRow key={asset.id} className="hover:bg-muted/50">
+                        <TableCell className="font-mono font-medium">{asset.patrimony_code ?? '-'}</TableCell>
+                        <TableCell>{asset.name ?? '-'}</TableCell>
+                        <TableCell className="font-mono text-muted-foreground text-sm">{asset.serial_number ?? '-'}</TableCell>
+                        <TableCell>{asset.department ?? '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={STATUS_COLORS[asset.status] ?? ''}>
+                            {STATUS_LABELS[asset.status] ?? asset.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              onClick={() => openEditDialog(asset)}
+                              variant="ghost"
+                              size="sm"
+                              className="hover:bg-blue-50 hover:text-[#1e40af]"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              onClick={() => openDeleteDialog(asset)}
+                              variant="ghost"
+                              size="sm"
+                              className="hover:bg-red-50 hover:text-red-600"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  </table>
+                </div>
+              </div>
+
+              {assets.length === 0 && (
+                <p className="text-center text-muted-foreground py-8 flex-shrink-0">Nenhum patrimônio cadastrado.</p>
+              )}
+            </>
           )}
 
-          {!loading && assets.length === 0 && (
-            <p className="text-center text-muted-foreground py-8">Nenhum patrimônio cadastrado.</p>
-          )}
-
-          <PaginationBar
-            pagination={pagination}
-            onPageChange={handlePageChange}
-            onPerPageChange={handlePerPageChange}
-          />
+          <div className="flex-shrink-0">
+            <PaginationBar
+              pagination={pagination}
+              onPageChange={handlePageChange}
+              onPerPageChange={handlePerPageChange}
+            />
+          </div>
         </CardContent>
       </Card>
 

@@ -22,6 +22,26 @@ class RolePermissionSeeder extends Seeder
             'export_data' => 'Exportar Dados',
             'view_stock_requests' => 'Ver Solicitações de Produtos',
             'request_products' => 'Solicitar Produtos',
+            // Acesso por página (independentes)
+            'view_departments' => 'Acessar Departamentos',
+            'view_categories' => 'Acessar Categorias',
+            // Patrimônio
+            'fixed_assets_read' => 'Visualizar Patrimônio',
+            'fixed_assets_create' => 'Criar Patrimônio',
+            'fixed_assets_update' => 'Editar Patrimônio',
+            'fixed_assets_delete' => 'Excluir Patrimônio',
+            // Departamentos
+            'department_create' => 'Criar Departamento',
+            'department_update' => 'Editar Departamento',
+            'department_delete' => 'Excluir Departamento',
+            // Categorias
+            'category_create' => 'Criar Categoria',
+            'category_update' => 'Editar Categoria',
+            'category_delete' => 'Excluir Categoria',
+            // Usuários (ações granulares)
+            'user_create' => 'Criar Usuário',
+            'user_update' => 'Editar Usuário',
+            'user_delete' => 'Excluir Usuário',
         ];
 
         foreach ($permissions as $name => $label) {

@@ -3,7 +3,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { canViewStockRequests } from '../lib/permissions';
 import { hasPermission } from '../lib/permissions';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Card, CardContent } from '../components/ui/card';
 import {
   Table,
   TableBody,
@@ -168,87 +168,73 @@ const Solicitações = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col gap-6 animate-fade-in min-h-0" style={{ height: 'calc(100vh - 220px)' }}>
       <div>
         <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
           <ClipboardList className="w-8 h-8 text-[#0c4a6e]" />
           Solicitações de Produtos
         </h1>
-        <p className="text-muted-foreground mt-1">
-          {canViewAll
-            ? 'Todas as solicitações enviadas ao almoxarifado.'
-            : 'Suas solicitações enviadas ao almoxarifado.'}
-        </p>
       </div>
 
-      <Card className="border-border">
-        <CardHeader>
-          <CardTitle className="text-lg">Lista de solicitações</CardTitle>
-          <CardDescription>
-            {canViewAll ? 'Solicitações de todos os usuários' : 'Apenas suas solicitações'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Card className="border-border flex-1 flex flex-col min-h-0">
+        <CardContent className="p-6 flex-1 flex flex-col min-h-0 gap-4">
           {loading ? (
-            <div className="py-12 text-center text-muted-foreground">Carregando...</div>
+            <p className="text-muted-foreground flex-shrink-0">Carregando...</p>
           ) : requests.length === 0 ? (
-            <p className="py-8 text-center text-muted-foreground">Nenhuma solicitação encontrada.</p>
+            <p className="py-8 text-center text-muted-foreground flex-shrink-0">Nenhuma solicitação encontrada.</p>
           ) : (
             <>
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">#</TableHead>
-                    {canViewAll && <TableHead className="font-semibold">Solicitante</TableHead>}
-                    <TableHead className="font-semibold">Status</TableHead>
-                    <TableHead className="font-semibold">Itens</TableHead>
-                    <TableHead className="font-semibold">Data</TableHead>
-                    <TableHead className="w-10" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {requests.map((r) => (
-                    <TableRow
-                      key={r.id}
-                      className="hover:bg-muted/30 cursor-pointer"
-                      onClick={() => setSelectedRequest(r)}
-                    >
-                      <TableCell className="font-mono text-muted-foreground">{r.id}</TableCell>
-                      {canViewAll && (
-                        <TableCell className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                          {r.user_name ?? '-'}
-                        </TableCell>
-                      )}
-                      <TableCell>
-                        <Badge
-                          variant={STATUS_VARIANT[r.status] || 'outline'}
-                          className={STATUS_BADGE_CLASS[r.status] ?? ''}
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto scrollbar-table border border-border rounded-md" aria-label="Tabela de solicitações com rolagem">
+                <div className="min-w-0">
+                  <table className="w-full caption-bottom text-sm border-collapse">
+                    <thead className="[&_tr]:border-b">
+                      <TableRow className="sticky top-0 z-20 border-b border-border bg-background shadow-[0_1px_0_0_hsl(var(--border))] hover:bg-background [&_th]:bg-background [&_th]:shadow-[0_1px_0_0_hsl(var(--border))]">
+                        <TableHead className="font-semibold h-10 px-2 bg-background first:rounded-tl-md">#</TableHead>
+                        {canViewAll && <TableHead className="font-semibold h-10 px-2 bg-background">Solicitante</TableHead>}
+                        <TableHead className="font-semibold h-10 px-2 bg-background">Status</TableHead>
+                        <TableHead className="font-semibold h-10 px-2 bg-background">Itens</TableHead>
+                        <TableHead className="font-semibold h-10 px-2 bg-background">Data</TableHead>
+                        <TableHead className="w-10 h-10 px-2 bg-background last:rounded-tr-md" />
+                      </TableRow>
+                    </thead>
+                    <TableBody>
+                      {requests.map((r) => (
+                        <TableRow
+                          key={r.id}
+                          className="hover:bg-muted/30 cursor-pointer"
+                          onClick={() => setSelectedRequest(r)}
                         >
-                          {STATUS_LABEL[r.status] ?? r.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {r.items?.length ?? 0} {r.items?.length === 1 ? 'item' : 'itens'}
-                      </TableCell>
-                      <TableCell className="flex items-center gap-2 text-muted-foreground">
-                        <Calendar className="w-4 h-4" />
-                        {r.created_at ?? '-'}
-                      </TableCell>
-                      <TableCell className="w-10">
-                        <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <PaginationBar
-              pagination={pagination}
-              onPageChange={handlePageChange}
-              onPerPageChange={handlePerPageChange}
-            />
+                          <TableCell className="font-mono text-muted-foreground">{r.id}</TableCell>
+                          {canViewAll && (
+                            <TableCell className="flex items-center gap-2">
+                              <User className="w-4 h-4 text-muted-foreground" />
+                              {r.user_name ?? '-'}
+                            </TableCell>
+                          )}
+                          <TableCell>
+                            <Badge variant={STATUS_VARIANT[r.status] || 'outline'} className={STATUS_BADGE_CLASS[r.status] ?? ''}>
+                              {STATUS_LABEL[r.status] ?? r.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {r.items?.length ?? 0} {r.items?.length === 1 ? 'item' : 'itens'}
+                          </TableCell>
+                          <TableCell className="flex items-center gap-2 text-muted-foreground">
+                            <Calendar className="w-4 h-4" />
+                            {r.created_at ?? '-'}
+                          </TableCell>
+                          <TableCell className="w-10">
+                            <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </table>
+                </div>
+              </div>
+              <div className="flex-shrink-0">
+                <PaginationBar pagination={pagination} onPageChange={handlePageChange} onPerPageChange={handlePerPageChange} />
+              </div>
             </>
           )}
         </CardContent>
@@ -256,8 +242,8 @@ const Solicitações = () => {
 
       {/* Modal: detalhes da solicitação e itens */}
       <Dialog open={!!selectedRequest} onOpenChange={(open) => !open && setSelectedRequest(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
+        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
+          <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
             <DialogTitle className="flex items-center gap-2">
               <Package className="w-5 h-5 text-[#0c4a6e]" />
               Solicitação #{selectedRequest?.id}
@@ -267,24 +253,24 @@ const Solicitações = () => {
             </DialogDescription>
           </DialogHeader>
           {selectedRequest && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="flex flex-col min-h-0 flex-1 overflow-hidden px-6 pb-6">
+              <div className="grid grid-cols-2 gap-2 text-sm flex-shrink-0 mb-4">
                 {canViewAll && (
                   <>
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <User className="w-4 h-4" />
+                      <User className="w-4 h-4 flex-shrink-0" />
                       <span>Solicitante:</span>
                       <span className="font-medium text-foreground truncate">{selectedRequest.user_name ?? '-'}</span>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <Building2 className="w-4 h-4" />
+                      <Building2 className="w-4 h-4 flex-shrink-0" />
                       <span>Departamento:</span>
                       <span className="font-medium text-foreground truncate">{selectedRequest.user_department ?? '-'}</span>
                     </div>
                   </>
                 )}
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
+                  <Calendar className="w-4 h-4 flex-shrink-0" />
                   <span>Data:</span>
                   <span className="font-medium text-foreground">{selectedRequest.created_at ?? '-'}</span>
                 </div>
@@ -299,17 +285,17 @@ const Solicitações = () => {
                 </div>
               </div>
               {selectedRequest.notes && (
-                <div className="text-sm">
+                <div className="text-sm flex-shrink-0 mb-4">
                   <span className="text-muted-foreground">Observações: </span>
                   <span className="text-foreground">{selectedRequest.notes}</span>
                 </div>
               )}
-              <div>
-                <p className="text-sm font-medium text-foreground mb-2">Itens solicitados</p>
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <Table>
+              <div className="flex flex-col min-h-0 flex-1 overflow-hidden">
+                <p className="text-sm font-medium text-foreground mb-2 flex-shrink-0">Itens solicitados</p>
+                <div className="flex-1 min-h-0 overflow-y-auto rounded-lg border border-border scrollbar-thin">
+                  <Table className="!overflow-visible">
                     <TableHeader>
-                      <TableRow className="bg-muted/50">
+                      <TableRow className="bg-muted/50 sticky top-0 z-10 [&_th]:bg-muted/50 [&_th]:shadow-[0_1px_0_0_hsl(var(--border))]">
                         <TableHead className="font-semibold text-xs">Código</TableHead>
                         <TableHead className="font-semibold text-xs">Produto</TableHead>
                         <TableHead className="font-semibold text-xs text-right w-20">Qtd</TableHead>
@@ -335,7 +321,7 @@ const Solicitações = () => {
                   </Table>
                 </div>
               </div>
-              <div className="flex flex-wrap justify-end gap-2 pt-2">
+              <div className="flex flex-wrap justify-end gap-2 pt-4 flex-shrink-0 border-t border-border mt-4">
                 {canFulfill && selectedRequest.status === 'pendente' && (
                   <Button
                     className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"

@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
 } from './ui/alert-dialog';
 import { Badge } from './ui/badge';
-import { Plus, Shield, Edit, Trash2, Check, LayoutDashboard, Package, ClipboardList, Building2, FolderTree, Users, Inbox, Clock, Settings } from 'lucide-react';
+import { Plus, Shield, Edit, Trash2, Check, LayoutDashboard, Package, ClipboardList, Building2, FolderTree, Users, Inbox, Clock, Settings, AlertTriangle, ChevronDown, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 
 /** Páginas do sistema e a permissão necessária para acessá-las (nome da permissão no backend). */
@@ -33,16 +33,130 @@ const PAGES_BY_PERMISSION = [
   { key: 'dashboard', label: 'Dashboard', permission: 'view_dashboard', icon: LayoutDashboard },
   { key: 'products', label: 'Produtos', permission: 'read', icon: Package },
   { key: 'solicitar-produtos', label: 'Solicitar Produtos', permission: 'request_products', icon: ClipboardList },
-  { key: 'departments', label: 'Departamentos', permission: 'manage_users', icon: Building2 },
-  { key: 'categories', label: 'Categorias', permission: 'manage_users', icon: FolderTree },
+  { key: 'departments', label: 'Departamentos', permission: 'view_departments', icon: Building2 },
+  { key: 'categories', label: 'Categorias', permission: 'view_categories', icon: FolderTree },
+  { key: 'patrimonio', label: 'Patrimônio', permission: 'fixed_assets_read', icon: Tag },
   { key: 'users', label: 'Usuários', permission: 'manage_users', icon: Users },
   { key: 'solicitacoes', label: 'Solicitações', permission: 'view_stock_requests', icon: Inbox },
-  { key: 'logs', label: 'Logs de Atividade', permission: 'view_logs', icon: Clock },
+  { key: 'logs', label: 'Logs', permission: 'view_logs', icon: Clock },
   { key: 'roles-settings', label: 'Funções e Configurações', permission: 'manage_roles', icon: Settings },
 ];
 
-/** Permissões que não são “página” mas ações (ex.: criar/editar/excluir produtos). */
-const ACTION_PERMISSION_IDS = ['create', 'update', 'delete', 'export_data'];
+/** “página” /**
+ * Estrutura de todas as páginas do menu do sistema.
+ * Cada página é independente. Páginas sem `acoes` têm apenas o checkbox de liberação (sem seta/accordion).
+ */
+const PAGINAS_ESTRUTURA = [
+  { id: 'dashboard', nome: 'Dashboard', viewPermissionId: 'view_dashboard' },
+  {
+    id: 'produtos',
+    nome: 'Produtos (Estoque/Gerencial)',
+    viewPermissionId: 'read',
+    acoes: [
+      { id: 'create', label: 'Criar', danger: false },
+      { id: 'update', label: 'Editar', danger: false },
+      { id: 'delete', label: 'Excluir', danger: true },
+      { id: 'export_data', label: 'Exportar', danger: false },
+    ],
+  },
+  { id: 'solicitar_produtos', nome: 'Solicitar Produtos', viewPermissionId: 'request_products' },
+  {
+    id: 'departamentos',
+    nome: 'Departamentos',
+    viewPermissionId: 'view_departments',
+    acoes: [
+      { id: 'department_create', label: 'Criar', danger: false },
+      { id: 'department_update', label: 'Editar', danger: false },
+      { id: 'department_delete', label: 'Excluir', danger: true },
+    ],
+  },
+  {
+    id: 'categorias',
+    nome: 'Categorias',
+    viewPermissionId: 'view_categories',
+    acoes: [
+      { id: 'category_create', label: 'Criar', danger: false },
+      { id: 'category_update', label: 'Editar', danger: false },
+      { id: 'category_delete', label: 'Excluir', danger: true },
+    ],
+  },
+  {
+    id: 'patrimonio',
+    nome: 'Patrimônio',
+    viewPermissionId: 'fixed_assets_read',
+    acoes: [
+      { id: 'fixed_assets_create', label: 'Criar', danger: false },
+      { id: 'fixed_assets_update', label: 'Editar', danger: false },
+      { id: 'fixed_assets_delete', label: 'Excluir', danger: true },
+    ],
+  },
+  {
+    id: 'usuarios',
+    nome: 'Usuários',
+    viewPermissionId: 'manage_users',
+    acoes: [
+      { id: 'user_create', label: 'Criar', danger: false },
+      { id: 'user_update', label: 'Editar', danger: false },
+      { id: 'user_delete', label: 'Excluir', danger: true },
+    ],
+  },
+  { id: 'solicitacoes', nome: 'Solicitações', viewPermissionId: 'view_stock_requests' },
+  { id: 'logs', nome: 'Logs', viewPermissionId: 'view_logs' },
+  { id: 'configuracoes', nome: 'Configurações', viewPermissionId: 'manage_roles' },
+];
+
+/** Estado inicial de uma página (com ou sem acoes). */
+const getPaginaInicial = (estrutura) => {
+  const base = {
+    id: estrutura.id,
+    nome: estrutura.nome,
+    liberado: false,
+    expandido: false,
+    viewPermissionId: estrutura.viewPermissionId,
+  };
+  if (estrutura.acoes && estrutura.acoes.length > 0) {
+    return { ...base, acoes: estrutura.acoes.map((a) => ({ ...a, checked: false })) };
+  }
+  return base;
+};
+
+/** Gera o array de páginas no formato do estado (todas desmarcadas). */
+const getPaginasInicial = () =>
+  PAGINAS_ESTRUTURA.map((e) => getPaginaInicial(e));
+
+/** Converte array de permissões da API para estado paginas. */
+const buildPaginasFromPermissions = (permissions = []) => {
+  const list = permissions;
+  return PAGINAS_ESTRUTURA.map((estrutura) => {
+    const viewChecked = list.includes(estrutura.viewPermissionId);
+    const base = {
+      id: estrutura.id,
+      nome: estrutura.nome,
+      liberado: viewChecked,
+      expandido: false,
+      viewPermissionId: estrutura.viewPermissionId,
+    };
+    if (estrutura.acoes && estrutura.acoes.length > 0) {
+      return {
+        ...base,
+        acoes: estrutura.acoes.map((a) => ({ ...a, checked: list.includes(a.id) })),
+      };
+    }
+    return base;
+  });
+};
+
+/** Converte estado paginas para array de IDs de permissão para a API (sem duplicatas). */
+const buildPermissionsFromPaginas = (paginas = []) => {
+  const ids = new Set();
+  paginas.forEach((p) => {
+    if (p.liberado) ids.add(p.viewPermissionId);
+    (p.acoes || []).forEach((a) => {
+      if (a.checked) ids.add(a.id);
+    });
+  });
+  return [...ids];
+};
 
 const ROLES_DESCRIPTIONS = {
   Admin: 'Acesso total ao sistema',
@@ -51,16 +165,57 @@ const ROLES_DESCRIPTIONS = {
   Visualizador: 'Apenas visualização',
 };
 
-function RoleForm({ formData, onInputChange, onPermissionChange, allPermissions, onSubmit, submitText }) {
-  const permissionsList = Array.isArray(allPermissions) ? allPermissions : [];
-  const actionPermissions = permissionsList.filter((p) => ACTION_PERMISSION_IDS.includes(p.id));
+/** Nome reservado: a role Admin não pode ser criada nem editada pela interface. */
+const RESERVED_ROLE_NAME = 'admin';
+const isReservedRoleName = (name) => (name || '').trim().toLowerCase() === RESERVED_ROLE_NAME;
 
-  const isPageChecked = (page) => {
-    return formData.permissions?.includes(page.permission) ?? false;
+function RoleForm({ formData, onInputChange, onPaginasChange, onSubmit, submitText, onCancel }) {
+  const paginas = formData.paginas ?? [];
+
+  const setPagina = (pageId, updater) => {
+    onPaginasChange((prev) =>
+      prev.map((p) => (p.id === pageId ? (typeof updater === 'function' ? updater(p) : updater) : p))
+    );
   };
 
-  const handlePageChange = (page) => {
-    onPermissionChange(page.permission);
+  const hasAcoes = (pagina) => pagina.acoes && pagina.acoes.length > 0;
+
+  /** Ao desmarcar a página pai: todas as acoes ficam unchecked e o painel fecha (expandido: false). */
+  const toggleLiberado = (pagina) => {
+    const nextLiberado = !pagina.liberado;
+    onPaginasChange((prev) =>
+      prev.map((p) => {
+        if (p.id !== pagina.id) return p;
+        const next = {
+          ...p,
+          liberado: nextLiberado,
+          expandido: nextLiberado ? p.expandido : false,
+        };
+        if (p.acoes && p.acoes.length > 0) {
+          next.acoes = p.acoes.map((a) => ({ ...a, checked: nextLiberado ? a.checked : false }));
+        }
+        return next;
+      })
+    );
+  };
+
+  const toggleExpandido = (pagina) => {
+    if (!pagina.liberado || !hasAcoes(pagina)) return;
+    setPagina(pagina.id, (p) => ({ ...p, expandido: !p.expandido }));
+  };
+
+  const toggleAcao = (pageId, acaoId) => {
+    onPaginasChange((prev) =>
+      prev.map((p) => {
+        if (p.id !== pageId || !p.acoes) return p;
+        return {
+          ...p,
+          acoes: p.acoes.map((a) =>
+            a.id === acaoId ? { ...a, checked: !a.checked } : a
+          ),
+        };
+      })
+    );
   };
 
   return (
@@ -88,56 +243,85 @@ function RoleForm({ formData, onInputChange, onPermissionChange, allPermissions,
         />
       </div>
 
-      <div className="space-y-3">
-        <Label className="text-base font-medium">Páginas liberadas para esta função</Label>
-        <p className="text-sm text-muted-foreground">
-          Selecione quais páginas do sistema esta função poderá acessar.
+      <div className="space-y-0">
+        <Label className="text-base font-medium mb-2 block">Páginas e permissões</Label>
+        <p className="text-sm text-muted-foreground mb-3">
+          Libere o acesso à página (visualizar) e expanda para configurar ações.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-lg border border-border p-4 bg-muted/30">
-          {PAGES_BY_PERMISSION.map((page) => {
-            const Icon = page.icon;
-            const checked = isPageChecked(page);
-            return (
-              <label
-                key={page.key}
-                className="flex items-center gap-3 rounded-md py-2.5 px-3 cursor-pointer transition-colors hover:bg-muted/50"
+        <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+          {paginas.map((pagina) => (
+            <div key={pagina.id} className="bg-background">
+              <div
+                className="flex items-center gap-3 py-3 px-4 hover:bg-muted/30 transition-colors"
+                style={{ minHeight: '44px' }}
               >
-                <Checkbox
-                  checked={checked}
-                  onCheckedChange={() => handlePageChange(page)}
-                />
-                <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-sm font-medium">{page.label}</span>
-              </label>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-base font-medium">Ações em Produtos</Label>
-        <p className="text-sm text-muted-foreground">
-          Permissões adicionais na página de Produtos (criar, editar, excluir, exportar).
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border rounded-md p-3">
-          {actionPermissions.map((perm) => (
-            <div key={perm.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={`perm-${perm.id}`}
-                checked={formData.permissions?.includes(perm.id)}
-                onCheckedChange={() => onPermissionChange(perm.id)}
-              />
-              <label htmlFor={`perm-${perm.id}`} className="text-sm cursor-pointer">
-                {perm.label || perm.name}
-              </label>
+                <label className="flex items-center gap-3 flex-1 cursor-pointer">
+                  <Checkbox
+                    checked={pagina.liberado}
+                    onCheckedChange={() => toggleLiberado(pagina)}
+                  />
+                  <span className="text-sm font-medium text-foreground">{pagina.nome}</span>
+                </label>
+                {pagina.liberado && hasAcoes(pagina) && (
+                  <button
+                    type="button"
+                    onClick={() => toggleExpandido(pagina)}
+                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                    aria-expanded={pagina.expandido}
+                  >
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${pagina.expandido ? 'rotate-180' : ''}`}
+                      aria-hidden
+                    />
+                  </button>
+                )}
+              </div>
+              {pagina.liberado && hasAcoes(pagina) && pagina.expandido && (
+                <div className="border-t border-border bg-slate-50 w-full pl-12 pr-4 py-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Ações permitidas</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {(pagina.acoes || []).map((acao) => (
+                      <label
+                        key={acao.id}
+                        className={`flex items-center gap-2 rounded-md py-2 px-2.5 cursor-pointer transition-colors hover:bg-muted/50 ${
+                          acao.danger ? 'text-destructive' : ''
+                        }`}
+                      >
+                        <Checkbox
+                          checked={acao.checked}
+                          onCheckedChange={() => toggleAcao(pagina.id, acao.id)}
+                        />
+                        {acao.danger && (
+                          <AlertTriangle
+                            className="w-3.5 h-3.5 text-destructive shrink-0"
+                            aria-hidden
+                          />
+                        )}
+                        <span
+                          className={`text-sm font-medium ${acao.danger ? 'text-destructive' : ''}`}
+                        >
+                          {acao.label}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
       </div>
 
-      <Button type="submit" className="w-full sm:w-auto">
-        {submitText}
-      </Button>
+      <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
+        <Button type="submit" className="w-full sm:w-auto">
+          {submitText}
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="secondary" onClick={onCancel} className="w-full sm:w-auto">
+            Cancelar
+          </Button>
+        )}
+      </div>
     </form>
   );
 }
@@ -165,7 +349,7 @@ const RolesManager = ({ embedded = false }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    permissions: []
+    paginas: getPaginasInicial(),
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState(null);
@@ -184,20 +368,23 @@ const RolesManager = ({ embedded = false }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handlePermissionChange = (permissionId) => {
+  const handlePaginasChange = (updater) => {
     setFormData(prev => ({
       ...prev,
-      permissions: prev.permissions.includes(permissionId)
-        ? prev.permissions.filter(p => p !== permissionId)
-        : [...prev.permissions, permissionId]
+      paginas: typeof updater === 'function' ? updater(prev.paginas ?? []) : updater,
     }));
   };
 
   const handleAddRole = (e) => {
     e.preventDefault();
-    api.post('/roles', { name: formData.name, description: formData.description, permissions: formData.permissions })
+    if (isReservedRoleName(formData.name)) {
+      toast.error('O nome "Admin" é reservado e não pode ser usado para uma nova função.');
+      return;
+    }
+    const permissions = buildPermissionsFromPaginas(formData.paginas);
+    api.post('/roles', { name: formData.name, description: formData.description, permissions })
       .then(() => {
-        setFormData({ name: '', description: '', permissions: [] });
+        setFormData({ name: '', description: '', paginas: getPaginasInicial() });
         setIsAddDialogOpen(false);
         loadRoles();
         toast.success('Função criada com sucesso!');
@@ -207,7 +394,12 @@ const RolesManager = ({ embedded = false }) => {
 
   const handleEditRole = (e) => {
     e.preventDefault();
-    api.put(`/roles/${editingRole.id}`, { name: formData.name, description: formData.description, permissions: formData.permissions })
+    if (isReservedRoleName(formData.name)) {
+      toast.error('O nome "Admin" é reservado e não pode ser alterado.');
+      return;
+    }
+    const permissions = buildPermissionsFromPaginas(formData.paginas);
+    api.put(`/roles/${editingRole.id}`, { name: formData.name, description: formData.description, permissions })
       .then(() => {
         setIsEditDialogOpen(false);
         setEditingRole(null);
@@ -245,7 +437,7 @@ const RolesManager = ({ embedded = false }) => {
     setFormData({
       name: role.name,
       description: role.description || ROLES_DESCRIPTIONS[role.name] || '',
-      permissions: [...(role.permissions || [])]
+      paginas: buildPaginasFromPermissions(role.permissions || []),
     });
     setIsEditDialogOpen(true);
   };
@@ -263,7 +455,7 @@ const RolesManager = ({ embedded = false }) => {
         {embedded && (
           <div>
             <h2 className="text-lg font-semibold text-foreground">Funções e permissões</h2>
-            <p className="text-sm text-muted-foreground">Crie e edite funções e escolha quais páginas cada uma pode acessar.</p>
+            {/* <p className="text-sm text-muted-foreground">Crie e edite funções e escolha quais páginas cada uma pode acessar.</p> */}
           </div>
         )}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -281,17 +473,19 @@ const RolesManager = ({ embedded = false }) => {
             <RoleForm
               formData={formData}
               onInputChange={handleInputChange}
-              onPermissionChange={handlePermissionChange}
-              allPermissions={allPermissions}
+              onPaginasChange={handlePaginasChange}
               onSubmit={handleAddRole}
               submitText="Criar Função"
+              onCancel={() => setIsAddDialogOpen(false)}
             />
           </DialogContent>
         </Dialog>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {roles.map((role) => (
+        {roles
+          .filter((role) => role.name?.toLowerCase() !== 'admin')
+          .map((role) => (
           <Card key={role.id} data-testid={`role-card-${role.id}`} className="border-border hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -347,25 +541,6 @@ const RolesManager = ({ embedded = false }) => {
                     );
                   })}
                 </div>
-                {(() => {
-                  const roleActionPerms = (role.permissions || []).filter((p) => ACTION_PERMISSION_IDS.includes(p));
-                  if (roleActionPerms.length === 0) return null;
-                  return (
-                    <div className="pt-2 border-t border-border">
-                      <p className="text-xs font-medium text-muted-foreground mb-1">Ações em Produtos:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {roleActionPerms.map((permName) => {
-                          const perm = allPermissions.find((p) => p.id === permName);
-                          return (
-                            <Badge key={permName} variant="secondary" className="text-xs">
-                              {perm?.label || permName}
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
               </div>
             </CardContent>
           </Card>
@@ -402,10 +577,10 @@ const RolesManager = ({ embedded = false }) => {
           <RoleForm
             formData={formData}
             onInputChange={handleInputChange}
-            onPermissionChange={handlePermissionChange}
-            allPermissions={allPermissions}
+            onPaginasChange={handlePaginasChange}
             onSubmit={handleEditRole}
             submitText="Salvar Alterações"
+            onCancel={() => { setIsEditDialogOpen(false); setEditingRole(null); }}
           />
         </DialogContent>
       </Dialog>

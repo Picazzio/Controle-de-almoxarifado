@@ -7,11 +7,10 @@ const RESTRICTED_PATHS_BY_PERMISSION = {
   '/': 'view_dashboard',
   '/dashboard': 'view_dashboard',
   '/users': 'manage_users',
-  '/departments': 'manage_users',
-  '/categories': 'manage_users',
-  '/patrimonio': 'manage_users',
+  '/departments': 'view_departments',
+  '/categories': 'view_categories',
+  '/patrimonio': 'fixed_assets_read',
   '/roles': 'manage_roles',
-  '/logs': 'view_logs',
   '/solicitar-produtos': 'request_products',
   '/products': 'read',
   '/solicitacoes': 'view_stock_requests',
@@ -51,15 +50,15 @@ export function canAccessUsers(user) {
 }
 
 export function canAccessDepartments(user) {
-  return hasPermission(user, 'manage_users');
+  return hasPermission(user, 'view_departments');
 }
 
 export function canAccessCategories(user) {
-  return hasPermission(user, 'manage_users');
+  return hasPermission(user, 'view_categories');
 }
 
 export function canAccessPatrimonio(user) {
-  return hasPermission(user, 'manage_users');
+  return hasPermission(user, 'fixed_assets_read');
 }
 
 export function canAccessLogs(user) {

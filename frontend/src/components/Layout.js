@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useTheme } from 'next-themes';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../lib/api';
-import { canAccessUsers, canAccessLogs, canAccessDepartments, canAccessCategories, canAccessPatrimonio, canRequestProducts, canAccessProductsPage, canViewStockRequests, canAccessDashboard } from '../lib/permissions';
+import { canAccessUsers, canAccessDepartments, canAccessCategories, canAccessPatrimonio, canRequestProducts, canAccessProductsPage, canViewStockRequests, canAccessDashboard } from '../lib/permissions';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import {
@@ -11,6 +12,9 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import {
@@ -22,18 +26,21 @@ import {
   Building2,
   FolderTree,
   Tag,
-  Clock,
   Menu,
   X,
   LogOut,
   User,
   ChevronRight,
   Settings,
-  Bell
+  Bell,
+  Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -115,13 +122,12 @@ const Layout = ({ children }) => {
     ...(canAccessPatrimonio(user) ? [{ name: 'Patrimônio', href: '/patrimonio', icon: Tag }] : []),
     ...(canAccessUsers(user) ? [{ name: 'Usuários', href: '/users', icon: Users }] : []),
     ...(canViewStockRequests(user) ? [{ name: 'Solicitações', href: '/solicitacoes', icon: Inbox }] : []),
-    ...(canAccessLogs(user) ? [{ name: 'Logs de Atividade', href: '/logs', icon: Clock }] : []),
   ];
 
   const isActive = (path) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border shadow-sm">
         <div className="flex items-center justify-between px-4 py-4">
@@ -142,8 +148,8 @@ const Layout = ({ children }) => {
                 )}
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">Sistema de Gestão</h1>
-                <p className="text-xs text-muted-foreground">Controle de Ativos de TI</p>
+                <h1 className="text-xl font-bold text-foreground">Escudo Real</h1>
+                <p className="text-xs text-muted-foreground">Gestão de ativos e almoxarifado</p>
               </div>
             </Link>
           </div>
@@ -181,6 +187,29 @@ const Layout = ({ children }) => {
                     Perfil
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="cursor-pointer">
+                    <Sun className="w-4 h-4 mr-2" />
+                    Tema
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer gap-2">
+                      <Sun className="w-4 h-4" />
+                      Claro
+                      {theme === 'light' && <span className="ml-auto text-primary">✓</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer gap-2">
+                      <Moon className="w-4 h-4" />
+                      Escuro
+                      {theme === 'dark' && <span className="ml-auto text-primary">✓</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer gap-2">
+                      <Monitor className="w-4 h-4" />
+                      Sistema
+                      {theme === 'system' && <span className="ml-auto text-primary">✓</span>}
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 <DropdownMenuItem asChild>
                   <Link to="/settings" className="cursor-pointer flex items-center">
                     <Settings className="w-4 h-4 mr-2" />
@@ -268,7 +297,7 @@ const Layout = ({ children }) => {
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
       >
-        <nav className="p-4 pt-20 space-y-2 lg:pt-4">
+        <nav className="p-4 pt-20 space-y-2 lg:pt-7">
           {navigation.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
@@ -297,12 +326,20 @@ const Layout = ({ children }) => {
         </nav>
       </aside>
 
-      {/* Main Content - pt compensa o header fixo (nada fica atrás do header) */}
-      <main className="pt-20 lg:pl-64 min-h-screen lg:pt-16">
-        <div className="p-6">
+      {/* Main Content - flex-1 + overflow-y-auto: preenche o espaço (já descontado o footer); pt/pl compensam header e sidebar */}
+      <main className="flex-1 min-h-0 overflow-y-auto pt-20 lg:pl-64 lg:pt-16">
+        <div className="p-6 pb-4 h-full min-h-0 flex flex-col">
           {children}
         </div>
       </main>
+
+      {/* Footer - fixo na base da viewport, sem gerar scroll na página */}
+      <footer className="flex-shrink-0 border-t border-border bg-card/50 backdrop-blur-sm lg:pl-64">
+        <div className="px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
+          <span>© {new Date().getFullYear()} Escudo Real — Gestão de ativos e almoxarifado</span>
+          <span className="text-xs">Sistema de ativos v0.1</span>
+        </div>
+      </footer>
 
       {/* Overlay for mobile - z-[99] para ficar acima do header e abaixo do menu (z-[100]) */}
       {sidebarOpen && (

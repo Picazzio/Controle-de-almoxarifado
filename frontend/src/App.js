@@ -15,7 +15,6 @@ import Categories from './pages/Categories';
 import FixedAssetsIndex from './pages/FixedAssets/index';
 import Users from './pages/Users';
 import Roles from './pages/Roles';
-import Logs from './pages/Logs';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import { canAccessPath } from './lib/permissions';
@@ -142,13 +141,6 @@ function AppRoutes() {
         <PrivateRoute>
           <Layout>
             <Roles />
-          </Layout>
-        </PrivateRoute>
-      } />
-      <Route path="/logs" element={
-        <PrivateRoute>
-          <Layout>
-            <Logs />
           </Layout>
         </PrivateRoute>
       } />

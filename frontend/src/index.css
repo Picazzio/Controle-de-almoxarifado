@@ -99,6 +99,31 @@ code {
     .scrollbar-thin::-webkit-scrollbar-thumb:hover {
         background: hsl(var(--muted-foreground) / 0.5);
     }
+    /* Scrollbar minimalista para tabelas / áreas com scroll interno */
+    .scrollbar-table::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    .scrollbar-table::-webkit-scrollbar-track {
+        background: hsl(var(--muted) / 0.5);
+        border-radius: 3px;
+    }
+    .scrollbar-table::-webkit-scrollbar-thumb {
+        background: hsl(220 10% 85%);
+        border-radius: 3px;
+    }
+    .scrollbar-table::-webkit-scrollbar-thumb:hover {
+        background: hsl(220 10% 75%);
+    }
+    .dark .scrollbar-table::-webkit-scrollbar-track {
+        background: hsl(var(--muted) / 0.3);
+    }
+    .dark .scrollbar-table::-webkit-scrollbar-thumb {
+        background: hsl(220 10% 35%);
+    }
+    .dark .scrollbar-table::-webkit-scrollbar-thumb:hover {
+        background: hsl(220 10% 45%);
+    }
 }
 
 @layer base {

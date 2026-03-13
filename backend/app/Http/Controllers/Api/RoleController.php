@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class RoleController extends Controller
@@ -81,6 +82,19 @@ class RoleController extends Controller
             ->pluck('permissions.name')
             ->values()
             ->all();
+
+        $roleModel = Role::find($roleId);
+        if ($roleModel) {
+            activity()
+                ->causedBy($request->user())
+                ->performedOn($roleModel)
+                ->withProperties([
+                    'ip' => $request->ip(),
+                    'attributes' => ['name' => $request->name, 'permissions' => $permissionNames],
+                ])
+                ->log('created');
+        }
+
         return response()->json([
             'id' => $roleId,
             'name' => $request->name,
@@ -136,6 +150,15 @@ class RoleController extends Controller
             'permissions' => 'array',
             'permissions.*' => 'string',
         ]);
+
+        $oldPermissionNames = DB::table('role_has_permissions')
+            ->join('permissions', 'permissions.id', '=', 'role_has_permissions.permission_id')
+            ->where('role_has_permissions.role_id', $roleRow->id)
+            ->pluck('permissions.name')
+            ->values()
+            ->all();
+        $oldName = $roleRow->name;
+
         if ($request->filled('name')) {
             DB::table('roles')->where('id', $roleRow->id)->update([
                 'name' => $request->name,
@@ -157,6 +180,23 @@ class RoleController extends Controller
                 }
             }
             app(PermissionRegistrar::class)->forgetCachedPermissions();
+        }
+
+        $roleModel = Role::find($roleRow->id);
+        if ($roleModel) {
+            $newName = $request->filled('name') ? $request->name : $roleRow->name;
+            $newPermissionNames = array_key_exists('permissions', $request->all())
+                ? $request->permissions
+                : $oldPermissionNames;
+            activity()
+                ->causedBy($request->user())
+                ->performedOn($roleModel)
+                ->withProperties([
+                    'ip' => $request->ip(),
+                    'old' => ['name' => $oldName, 'permissions' => $oldPermissionNames],
+                    'attributes' => ['name' => $newName, 'permissions' => $newPermissionNames],
+                ])
+                ->log('updated');
         }
         $roleRow = DB::table('roles')->where('id', $roleRow->id)->first();
         $userCount = DB::table('model_has_roles')
@@ -194,6 +234,19 @@ class RoleController extends Controller
         if ($userCount > 0) {
             return response()->json(['message' => 'Não é possível excluir função com usuários associados.'], 422);
         }
+
+        $roleModel = Role::find($roleRow->id);
+        if ($roleModel) {
+            activity()
+                ->causedBy($request->user())
+                ->performedOn($roleModel)
+                ->withProperties([
+                    'ip' => $request->ip(),
+                    'subject_name' => $roleRow->name,
+                ])
+                ->log('deleted');
+        }
+
         DB::table('role_has_permissions')->where('role_id', $roleRow->id)->delete();
         DB::table('roles')->where('id', $roleRow->id)->delete();
         return response()->json(null, 204);
@@ -216,6 +269,21 @@ class RoleController extends Controller
             'export_data' => 'Exportar Dados',
             'view_stock_requests' => 'Ver Solicitações de Produtos',
             'request_products' => 'Solicitar Produtos',
+            'view_departments' => 'Acessar Departamentos',
+            'view_categories' => 'Acessar Categorias',
+            'fixed_assets_read' => 'Visualizar Patrimônio',
+            'fixed_assets_create' => 'Criar Patrimônio',
+            'fixed_assets_update' => 'Editar Patrimônio',
+            'fixed_assets_delete' => 'Excluir Patrimônio',
+            'department_create' => 'Criar Departamento',
+            'department_update' => 'Editar Departamento',
+            'department_delete' => 'Excluir Departamento',
+            'category_create' => 'Criar Categoria',
+            'category_update' => 'Editar Categoria',
+            'category_delete' => 'Excluir Categoria',
+            'user_create' => 'Criar Usuário',
+            'user_update' => 'Editar Usuário',
+            'user_delete' => 'Excluir Usuário',
         ];
         $permissions = DB::table('permissions')
             ->where('guard_name', 'web')

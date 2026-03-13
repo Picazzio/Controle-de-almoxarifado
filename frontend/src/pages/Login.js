@@ -48,7 +48,7 @@ const Login = () => {
               </div>
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">Bem-vindo de volta</h1>
-            <p className="text-blue-100 text-sm">Sistema de Gestão de Ativos de TI</p>
+            <p className="text-blue-100 text-sm">Gestão de ativos e almoxarifado corporativo</p>
           </div>
 
           {/* Form */}
@@ -123,7 +123,7 @@ const Login = () => {
         {/* Footer Info */}
         <div className="mt-6 text-center">
           <p className="text-xs text-muted-foreground">
-            Sistema seguro para gestão de ativos corporativos
+            Sistema seguro para gestão de ativos e almoxarifado corporativo
           </p>
         </div>
       </div>

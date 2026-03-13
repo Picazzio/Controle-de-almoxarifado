@@ -33,11 +33,9 @@ import {
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
-  TableHeader,
   TableRow,
 } from '../components/ui/table';
 import { SortableTableHead } from '../components/ui/sortable-table-head';
@@ -542,66 +540,31 @@ const Products = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Package className="w-8 h-8 text-[#0c4a6e]" />
-            Produtos
-          </h1>
-          <p className="text-muted-foreground mt-1">{readOnly ? 'Estoque e expedição para departamentos' : 'Controle de estoque e expedição para departamentos'}</p>
-        </div>
-        {canCreate && (
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="add-product-btn" className="flex items-center gap-2 bg-gradient-to-r from-[#0c4a6e] to-[#1e40af]">
-              <Plus className="w-4 h-4" />
-              Cadastrar item
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Cadastrar item no almoxarifado</DialogTitle>
-              <DialogDescription>Preencha os dados do novo item em estoque</DialogDescription>
-            </DialogHeader>
-            <ProductForm
-              formData={formData}
-              onInputChange={handleInputChange}
-              onFieldChange={handleFieldChange}
-              categories={categories}
-              departments={departments}
-              onSubmit={handleAddProduct}
-              submitText="Cadastrar Produto"
-              isEditing={false}
-            />
-          </DialogContent>
-        </Dialog>
-        )}
+    <div className="flex flex-col gap-6 animate-fade-in min-h-0" style={{ height: 'calc(100vh - 220px)' }}>
+      <div>
+        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+          <Package className="w-8 h-8 text-[#0c4a6e]" />
+          Produtos
+        </h1>
       </div>
 
-      {/* Filters */}
-      <Card className="border-border">
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  data-testid="search-products-input"
-                  placeholder="Buscar por nome, código, marca ou departamento..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+      <Card className="border-border flex-1 flex flex-col min-h-0">
+        <CardContent className="p-6 flex-1 flex flex-col min-h-0 gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 flex-shrink-0 items-center">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                data-testid="search-products-input"
+                placeholder="Buscar por nome, código, marca ou departamento..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
             <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger data-testid="filter-category-select">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                  <SelectValue placeholder="Categoria" />
-                </div>
+              <SelectTrigger data-testid="filter-category-select" className="w-full sm:w-[180px]">
+                <Filter className="w-4 h-4" />
+                <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas Categorias</SelectItem>
@@ -610,112 +573,112 @@ const Products = () => {
                 ))}
               </SelectContent>
             </Select>
+            <div className="flex items-center gap-2 shrink-0">
+              {canCreate && (
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button data-testid="add-product-btn" size="icon" className="h-9 w-9 bg-gradient-to-r from-[#0c4a6e] to-[#1e40af] hover:opacity-90" aria-label="Cadastrar item">
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Cadastrar item no almoxarifado</DialogTitle>
+                      <DialogDescription>Preencha os dados do novo item em estoque</DialogDescription>
+                    </DialogHeader>
+                    <ProductForm
+                      formData={formData}
+                      onInputChange={handleInputChange}
+                      onFieldChange={handleFieldChange}
+                      categories={categories}
+                      departments={departments}
+                      onSubmit={handleAddProduct}
+                      submitText="Cadastrar Produto"
+                      isEditing={false}
+                    />
+                  </DialogContent>
+                </Dialog>
+              )}
+              {canExport && (
+                <Button data-testid="export-csv-btn" onClick={exportToCSV} variant="outline" size="icon" className="h-9 w-9" aria-label="Exportar CSV">
+                  <Download className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           </div>
-          <div className="mt-4 flex justify-between items-center">
-            <p className="text-sm text-muted-foreground">
-            </p>
-            {canExport && (
-            <Button data-testid="export-csv-btn" onClick={exportToCSV} variant="outline" size="sm" className="flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Exportar CSV
-            </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Products Table */}
-      <Card className="border-border">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <SortableTableHead columnKey="code" label="Código" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                  <SortableTableHead columnKey="name" label="Nome" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                  <SortableTableHead columnKey="brand" label="Marca" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                  <TableHead className="font-semibold">Categoria</TableHead>
-                  <SortableTableHead columnKey="value" label="Valor unit." sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                  <TableHead className="font-semibold text-right">Valor total</TableHead>
-                  <SortableTableHead columnKey="quantity" label="Qtd. atual" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} className="text-center" />
-                  <TableHead className="font-semibold">Localização</TableHead>
-                  {(canUpdate || canDelete) && <TableHead className="font-semibold text-right">Ações</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.map((product) => (
-                  <TableRow key={product.id} data-testid={`product-row-${product.id}`} className="hover:bg-muted/50">
-                    <TableCell className="font-mono text-muted-foreground">{product.code ?? '-'}</TableCell>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>{product.brand ?? '-'}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell>R$ {Number(product.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
-                    <TableCell className="text-right">R$ {Number(product.value_total ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
-                    <TableCell className="text-center font-medium">{product.quantity ?? 0}</TableCell>
-                    <TableCell>{product.location ?? '-'}</TableCell>
-                    {(canUpdate || canDelete) && (
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {canUpdate && (
-                        <Button
-                          data-testid={`entry-product-${product.id}`}
-                          onClick={() => openEntryDialog(product)}
-                          variant="ghost"
-                          size="sm"
-                          className="hover:bg-blue-50 hover:text-blue-700"
-                          title="Registrar entrada"
-                        >
-                          <ArrowDownToLine className="w-4 h-4" />
-                        </Button>
-                        )}
-                        {canUpdate && (product.quantity ?? 0) > 0 && (
-                        <Button
-                          data-testid={`withdraw-product-${product.id}`}
-                          onClick={() => openWithdrawDialog(product)}
-                          variant="ghost"
-                          size="sm"
-                          className="hover:bg-emerald-50 hover:text-emerald-700"
-                          title="Expedir (saída)"
-                        >
-                          <Send className="w-4 h-4" />
-                        </Button>
-                        )}
-                        {canUpdate && (
-                        <Button
-                          data-testid={`edit-product-${product.id}`}
-                          onClick={() => openEditDialog(product)}
-                          variant="ghost"
-                          size="sm"
-                          className="hover:bg-blue-50 hover:text-[#1e40af]"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        )}
-                        {canDelete && (
-                        <Button
-                          data-testid={`delete-product-${product.id}`}
-                          onClick={() => openDeleteDialog(product)}
-                          variant="ghost"
-                          size="sm"
-                          className="hover:bg-red-50 hover:text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          {loading ? (
+            <p className="text-muted-foreground flex-shrink-0">Carregando...</p>
+          ) : (
+            <>
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto scrollbar-table border border-border rounded-md" aria-label="Tabela de produtos com rolagem">
+                <div className="min-w-0">
+                  <table className="w-full caption-bottom text-sm border-collapse">
+                    <thead className="[&_tr]:border-b">
+                      <TableRow className="sticky top-0 z-20 border-b border-border bg-background shadow-[0_1px_0_0_hsl(var(--border))] hover:bg-background [&_th]:bg-background [&_th]:shadow-[0_1px_0_0_hsl(var(--border))]">
+                        <SortableTableHead columnKey="code" label="Código" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} className="h-10 px-2 bg-background first:rounded-tl-md" />
+                        <SortableTableHead columnKey="name" label="Nome" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} className="h-10 px-2 bg-background" />
+                        <SortableTableHead columnKey="brand" label="Marca" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} className="h-10 px-2 bg-background" />
+                        <TableHead className="font-semibold h-10 px-2 bg-background">Categoria</TableHead>
+                        <SortableTableHead columnKey="value" label="Valor unit." sortBy={sortBy} sortDir={sortDir} onSort={handleSort} className="h-10 px-2 bg-background" />
+                        <TableHead className="font-semibold text-right h-10 px-2 bg-background">Valor total</TableHead>
+                        <SortableTableHead columnKey="quantity" label="Qtd. atual" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} className="h-10 px-2 bg-background text-center" />
+                        <TableHead className="font-semibold h-10 px-2 bg-background">Localização</TableHead>
+                        {(canUpdate || canDelete) && <TableHead className="font-semibold text-right h-10 px-2 bg-background last:rounded-tr-md">Ações</TableHead>}
+                      </TableRow>
+                    </thead>
+                    <TableBody>
+                      {filteredProducts.map((product) => (
+                        <TableRow key={product.id} data-testid={`product-row-${product.id}`} className="hover:bg-muted/50">
+                          <TableCell className="font-mono text-muted-foreground">{product.code ?? '-'}</TableCell>
+                          <TableCell className="font-medium">{product.name}</TableCell>
+                          <TableCell>{product.brand ?? '-'}</TableCell>
+                          <TableCell>{product.category}</TableCell>
+                          <TableCell>R$ {Number(product.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-right">R$ {Number(product.value_total ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-center font-medium">{product.quantity ?? 0}</TableCell>
+                          <TableCell>{product.location ?? '-'}</TableCell>
+                          {(canUpdate || canDelete) && (
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                {canUpdate && (
+                                  <Button data-testid={`entry-product-${product.id}`} onClick={() => openEntryDialog(product)} variant="ghost" size="sm" className="hover:bg-blue-50 hover:text-blue-700" title="Registrar entrada">
+                                    <ArrowDownToLine className="w-4 h-4" />
+                                  </Button>
+                                )}
+                                {canUpdate && (product.quantity ?? 0) > 0 && (
+                                  <Button data-testid={`withdraw-product-${product.id}`} onClick={() => openWithdrawDialog(product)} variant="ghost" size="sm" className="hover:bg-emerald-50 hover:text-emerald-700" title="Expedir (saída)">
+                                    <Send className="w-4 h-4" />
+                                  </Button>
+                                )}
+                                {canUpdate && (
+                                  <Button data-testid={`edit-product-${product.id}`} onClick={() => openEditDialog(product)} variant="ghost" size="sm" className="hover:bg-blue-50 hover:text-[#1e40af]">
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                )}
+                                {canDelete && (
+                                  <Button data-testid={`delete-product-${product.id}`} onClick={() => openDeleteDialog(product)} variant="ghost" size="sm" className="hover:bg-red-50 hover:text-red-600">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </table>
+                </div>
+              </div>
+              {filteredProducts.length === 0 && (
+                <p className="text-center text-muted-foreground py-8 flex-shrink-0">Nenhum produto encontrado.</p>
+              )}
+            </>
+          )}
+
+          <div className="flex-shrink-0">
+            <PaginationBar pagination={pagination} onPageChange={handlePageChange} onPerPageChange={handlePerPageChange} />
           </div>
-          <PaginationBar
-            pagination={pagination}
-            onPageChange={handlePageChange}
-            onPerPageChange={handlePerPageChange}
-            className="px-6 pb-4"
-          />
         </CardContent>
       </Card>
 

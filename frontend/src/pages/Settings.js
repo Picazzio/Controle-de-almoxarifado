@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useTheme } from 'next-themes';
 import { useAuth } from '../contexts/AuthContext';
-import { hasPermission } from '../lib/permissions';
+import { hasPermission, canAccessLogs } from '../lib/permissions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Label } from '../components/ui/label';
@@ -9,7 +8,8 @@ import { Switch } from '../components/ui/switch';
 import { Checkbox } from '../components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import RolesManager from '../components/RolesManager';
-import { Moon, Sun, Monitor, Shield, Bell, Mail, Smartphone, Settings as SettingsIcon } from 'lucide-react';
+import Logs from './Logs';
+import { Shield, Bell, Mail, Smartphone, Settings as SettingsIcon, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ALERTS_STORAGE_KEY = 'sistema-ativos-alerts';
@@ -28,10 +28,9 @@ const defaultAlertSettings = {
 
 const Settings = () => {
   const { user } = useAuth();
-  const { theme, setTheme, resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
   const canManageRoles = hasPermission(user, 'manage_roles');
   const isAdmin = user?.role === 'Admin';
+  const canViewLogs = canAccessLogs(user);
 
   const [alertSettings, setAlertSettings] = useState(defaultAlertSettings);
 
@@ -78,15 +77,11 @@ const Settings = () => {
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Configurações</h1>
-        <p className="text-muted-foreground mt-1">Preferências do sistema</p>
+        {/* <p className="text-muted-foreground mt-1">Preferências do sistema</p> */}
       </div>
 
-      <Tabs defaultValue="appearance" className="w-full">
-        <TabsList className={`grid w-full mb-4 ${isAdmin && canManageRoles ? 'grid-cols-4' : isAdmin || canManageRoles ? 'grid-cols-3' : 'grid-cols-2'}`}>
-          <TabsTrigger value="appearance" className="gap-2">
-            <Sun className="w-4 h-4" />
-            Aparência
-          </TabsTrigger>
+      <Tabs defaultValue="alerts" className="w-full">
+        <TabsList className="grid w-full mb-4" style={{ gridTemplateColumns: `repeat(${1 + (canManageRoles ? 1 : 0) + (canViewLogs ? 1 : 0) + (isAdmin ? 1 : 0)}, minmax(0, 1fr))` }}>
           {canManageRoles && (
             <TabsTrigger value="permissions" className="gap-2">
               <Shield className="w-4 h-4" />
@@ -97,6 +92,12 @@ const Settings = () => {
             <Bell className="w-4 h-4" />
             Alertas
           </TabsTrigger>
+          {canViewLogs && (
+            <TabsTrigger value="logs" className="gap-2">
+              <Clock className="w-4 h-4" />
+              Logs
+            </TabsTrigger>
+          )}
           {isAdmin && (
             <TabsTrigger value="gerais" className="gap-2">
               <SettingsIcon className="w-4 h-4" />
@@ -104,58 +105,6 @@ const Settings = () => {
             </TabsTrigger>
           )}
         </TabsList>
-
-        <TabsContent value="appearance">
-          <Card className="border-border">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sun className="w-5 h-5 text-muted-foreground" />
-                Aparência
-              </CardTitle>
-              <CardDescription>
-                Escolha o tema de exibição do sistema (claro, escuro ou conforme o sistema).
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-foreground">Tema</Label>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={theme === 'light' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setTheme('light')}
-                    className="gap-2"
-                  >
-                    <Sun className="w-4 h-4" />
-                    Claro
-                  </Button>
-                  <Button
-                    variant={theme === 'dark' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setTheme('dark')}
-                    className="gap-2"
-                  >
-                    <Moon className="w-4 h-4" />
-                    Escuro
-                  </Button>
-                  <Button
-                    variant={theme === 'system' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setTheme('system')}
-                    className="gap-2"
-                  >
-                    <Monitor className="w-4 h-4" />
-                    Sistema
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Tema atual: <span className="font-medium text-foreground">{isDark ? 'Escuro' : 'Claro'}</span>
-                  {theme === 'system' && ' (conforme preferência do sistema)'}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {canManageRoles && (
           <TabsContent value="permissions">
@@ -170,9 +119,9 @@ const Settings = () => {
                 <Bell className="w-5 h-5 text-muted-foreground" />
                 Alertas
               </CardTitle>
-              <CardDescription>
+              {/* <CardDescription>
                 Configure onde e sobre o que deseja receber notificações.
-              </CardDescription>
+              </CardDescription> */}
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between rounded-lg border border-border p-4">
@@ -180,7 +129,7 @@ const Settings = () => {
                   <Label htmlFor="alerts-enabled" className="text-base font-medium text-foreground cursor-pointer">
                     Ativar notificações
                   </Label>
-                  <p className="text-sm text-muted-foreground">Receber alertas do sistema.</p>
+                  {/* <p className="text-sm text-muted-foreground">Receber alertas do sistema.</p> */}
                 </div>
                 <Switch
                   id="alerts-enabled"
@@ -199,7 +148,7 @@ const Settings = () => {
                           <Smartphone className="w-5 h-5 text-muted-foreground" />
                           <div>
                             <p className="font-medium text-foreground">No sistema</p>
-                            <p className="text-xs text-muted-foreground">Sino no header</p>
+                            {/* <p className="text-xs text-muted-foreground">Sino no header</p> */}
                           </div>
                         </div>
                         <Switch
@@ -212,7 +161,7 @@ const Settings = () => {
                           <Mail className="w-5 h-5 text-muted-foreground" />
                           <div>
                             <p className="font-medium text-foreground">Por e-mail</p>
-                            <p className="text-xs text-muted-foreground">Enviar para seu e-mail</p>
+                            {/* <p className="text-xs text-muted-foreground">Enviar para seu e-mail</p> */}
                           </div>
                         </div>
                         <Switch
@@ -261,6 +210,12 @@ const Settings = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {canViewLogs && (
+          <TabsContent value="logs" className="mt-0">
+            <Logs />
+          </TabsContent>
+        )}
 
         {isAdmin && (
           <TabsContent value="gerais">
