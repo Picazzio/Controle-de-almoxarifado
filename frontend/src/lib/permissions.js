@@ -18,13 +18,14 @@ const RESTRICTED_PATHS_BY_PERMISSION = {
 
 export function hasPermission(user, permissionName) {
   if (!user) return false;
+  const role = user.role;
+  // Admin tem acesso total (mesmo se permissions vier vazio da API, ex.: seeders não rodaram no servidor)
+  if (role === 'Admin') return true;
   const permissions = user.permissions;
-  if (Array.isArray(permissions)) {
+  if (Array.isArray(permissions) && permissions.length > 0) {
     return permissions.includes(permissionName);
   }
-  // Fallback por role quando permissions não vier da API
-  const role = user.role;
-  if (role === 'Admin') return true;
+  // Fallback por role quando permissions não vier da API ou vier vazio
   if (role === 'Visualizador') return ['view_dashboard', 'read'].includes(permissionName);
   if (role === 'Gerente') {
     return ['view_dashboard', 'create', 'read', 'update', 'delete', 'view_logs', 'export_data'].includes(permissionName);
